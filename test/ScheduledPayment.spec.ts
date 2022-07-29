@@ -3,8 +3,8 @@ import assert from "assert";
 import { AddressZero } from "@ethersproject/constants";
 import { AddressOne } from "@gnosis.pm/safe-contracts";
 import { expect } from "chai";
+import { Contract } from "ethers";
 import hre, { deployments, waffle, ethers } from "hardhat";
-
 import "@nomiclabs/hardhat-ethers";
 
 describe("ScheduledPaymentModule", async () => {
@@ -57,9 +57,9 @@ describe("ScheduledPaymentModule", async () => {
         ["address", "address", "address", "address"],
         [user1.address, avatar.address, avatar.address, AddressOne]
       );
-      await expect(scheduledPaymentModule.setUp(initializeParams)).to.be.revertedWith(
-        "Initializable: contract is already initialized"
-      );
+      await expect(
+        scheduledPaymentModule.setUp(initializeParams)
+      ).to.be.revertedWith("Initializable: contract is already initialized");
     });
 
     it("throws if owner is zero address", async () => {
@@ -164,7 +164,7 @@ describe("ScheduledPaymentModule", async () => {
         AddressOne, //gasToken
         "1659072885", //payAt
         await scheduledPaymentModule.nonce()
-      )
+      );
       await expect(
         scheduledPaymentModule.connect(user2).schedulePayment(spHash)
       ).to.be.revertedWith("caller is not the right avatar");
@@ -180,10 +180,12 @@ describe("ScheduledPaymentModule", async () => {
         "10000000000", //maxGasPrice
         AddressOne, //gasToken
         "1659072885", //payAt
-        await scheduledPaymentModule.nonce()
-      )
+        nonce
+      );
       const schedulePayment =
-        await scheduledPaymentModule.populateTransaction.schedulePayment(spHash);
+        await scheduledPaymentModule.populateTransaction.schedulePayment(
+          spHash
+        );
       await expect(
         avatar.execTransaction(
           scheduledPaymentModule.address,
@@ -200,7 +202,111 @@ describe("ScheduledPaymentModule", async () => {
       )
         .to.emit(scheduledPaymentModule, "PaymentScheduled")
         .withArgs(nonce, spHash);
-      assert.equal((await scheduledPaymentModule.getSpHash())[0], spHash);
+      assert.equal((await scheduledPaymentModule.getSpHashes())[0], spHash);
+    });
+  });
+
+  describe("cancelScheduledPayment()", async () => {
+    let tx: any,
+      avatar: Contract,
+      scheduledPaymentModule: Contract,
+      spHash: any;
+
+    beforeEach(async () => {
+      const setupData = await setupTests();
+      tx = setupData.tx;
+      avatar = setupData.avatar;
+      scheduledPaymentModule = setupData.scheduledPaymentModule;
+
+      const nonce = await scheduledPaymentModule.nonce();
+      spHash = await scheduledPaymentModule.createSpHash(
+        AddressOne, //token
+        "1000000000000", // amount
+        AddressOne, //payee
+        "10000000000", //maxGasPrice
+        AddressOne, //gasToken
+        "1659072885", //payAt
+        nonce
+      );
+      const schedulePayment =
+        await scheduledPaymentModule.populateTransaction.schedulePayment(
+          spHash
+        );
+      await expect(
+        avatar.execTransaction(
+          scheduledPaymentModule.address,
+          tx.value,
+          schedulePayment.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures
+        )
+      );
+    });
+
+    it("throws if caller not avatar", async () => {
+      await expect(
+        scheduledPaymentModule.connect(user2).cancelScheduledPayment(spHash)
+      ).to.be.revertedWith("caller is not the right avatar");
+    });
+
+    it("throws if hash unknown", async () => {
+      const newSPHash = await scheduledPaymentModule.createSpHash(
+        AddressOne, //token
+        "1000000000000", // amount
+        AddressOne, //payee
+        "10000000000", //maxGasPrice
+        AddressOne, //gasToken
+        "1659072885", //payAt
+        100
+      );
+
+      const schedulePayment =
+        await scheduledPaymentModule.populateTransaction.cancelScheduledPayment(
+          newSPHash
+        );
+      await expect(
+        avatar.execTransaction(
+          scheduledPaymentModule.address,
+          tx.value,
+          schedulePayment.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures
+        )
+      ).to.be.revertedWith("Safe Tx reverted");
+    });
+
+    it("should emit event and remove hash from spHash", async () => {
+      const schedulePayment =
+        await scheduledPaymentModule.populateTransaction.cancelScheduledPayment(
+          spHash
+        );
+      await expect(
+        avatar.execTransaction(
+          scheduledPaymentModule.address,
+          tx.value,
+          schedulePayment.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures
+        )
+      )
+        .to.emit(scheduledPaymentModule, "ScheduledPaymentCancelled")
+        .withArgs(spHash);
+      assert.equal((await scheduledPaymentModule.getSpHashes()).length, 0);
     });
   });
 });
