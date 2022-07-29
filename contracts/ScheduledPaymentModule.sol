@@ -15,8 +15,10 @@ contract ScheduledPaymentModule is Module {
         address config
     );
     event PaymentScheduled(uint256 nonce, bytes32 spHash);
-
+    event ScheduledPaymentCancelled(bytes32 spHash);
     event ConfigSet(address config);
+
+    error UnknownHash(bytes32 spHash);
 
     address public config;
     uint256 public nonce;
@@ -69,6 +71,13 @@ contract ScheduledPaymentModule is Module {
         nonce++;
     }
 
+    function cancelScheduledPayment(bytes32 spHash) external onlyAvatar {
+        if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
+
+        spHashes.remove(spHash);
+        emit ScheduledPaymentCancelled(spHash);
+    }
+
     function setConfig(address _config) external onlyOwner {
         config = _config;
         emit ConfigSet(_config);
@@ -97,7 +106,7 @@ contract ScheduledPaymentModule is Module {
             );
     }
 
-    function getSpHash() public view returns (bytes32[] memory) {
+    function getSpHashes() public view returns (bytes32[] memory) {
         return spHashes.values();
     }
 }
