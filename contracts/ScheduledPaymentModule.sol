@@ -3,9 +3,12 @@ pragma solidity ^0.8.9;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "./interfaces/IConfig.sol";
 
 contract ScheduledPaymentModule is Module {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
+    using SafeMathUpgradeable for uint256;
 
     event ScheduledPaymentModuleSetup(
         address indexed initiator,
@@ -16,9 +19,17 @@ contract ScheduledPaymentModule is Module {
     );
     event PaymentScheduled(uint256 nonce, bytes32 spHash);
     event ScheduledPaymentCancelled(bytes32 spHash);
+    event ScheduledPaymentExecuted(bytes32 spHash);
     event ConfigSet(address config);
 
     error UnknownHash(bytes32 spHash);
+    error InvalidPeriod(bytes32 spHash);
+    error ExceedMaxGasPrice(bytes32 spHash);
+    error PaymentExecutionFailed(bytes32 spHash);
+    error GasDeductionFailed(bytes32 spHash);
+
+    bytes4 public constant TRANSFER =
+        bytes4(keccak256("transfer(address,uint256)"));
 
     address public config;
     uint256 public nonce;
@@ -26,6 +37,14 @@ contract ScheduledPaymentModule is Module {
 
     modifier onlyAvatar() {
         require(msg.sender == avatar, "caller is not the right avatar");
+        _;
+    }
+
+    modifier onlyCrank() {
+        require(
+            msg.sender == IConfig(config).getCrankAddress(),
+            "caller is not a crank"
+        );
         _;
     }
 
@@ -76,6 +95,54 @@ contract ScheduledPaymentModule is Module {
 
         spHashes.remove(spHash);
         emit ScheduledPaymentCancelled(spHash);
+    }
+
+    function executeScheduledPayment(
+        address token,
+        uint256 amount,
+        address payee,
+        uint256 maxGasPrice,
+        address gasToken,
+        uint256 _nonce,
+        uint256 payAt,
+        uint256 gasPrice
+    ) external onlyCrank {
+        bytes32 spHash = createSpHash(
+            token,
+            amount,
+            payee,
+            maxGasPrice,
+            gasToken,
+            _nonce,
+            payAt
+        );
+        if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
+        if (block.timestamp < payAt.add(1 minutes))
+            revert InvalidPeriod(spHash);
+        if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
+
+        // execTransactionFromModule to execute the sheduled payment
+        bytes memory spTxData = abi.encodeWithSelector(
+            0xa9059cbb,
+            payee,
+            amount
+        );
+        uint256 gasUsed = gasleft();
+        if (!exec(token, 0, spTxData, Enum.Operation.Call))
+            revert PaymentExecutionFailed(spHash);
+        gasUsed = gasUsed.sub(gasleft());
+
+        // execTransactionFromModule for gas reimbursement
+        bytes memory gasTxData = abi.encodeWithSelector(
+            0xa9059cbb,
+            IConfig(config).getFeeReceiver(),
+            gasUsed.mul(gasPrice)
+        );
+        if (!exec(gasToken, 0, gasTxData, Enum.Operation.Call))
+            revert GasDeductionFailed(spHash);
+
+        spHashes.remove(spHash);
+        emit ScheduledPaymentExecuted(spHash);
     }
 
     function setConfig(address _config) external onlyOwner {
