@@ -101,6 +101,8 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        uint256 baseGas,
+        uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
         uint256 _nonce,
@@ -111,38 +113,68 @@ contract ScheduledPaymentModule is Module {
             token,
             amount,
             payee,
+            baseGas,
+            executionGas,
             maxGasPrice,
             gasToken,
             _nonce,
             payAt
         );
         if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
-        if (block.timestamp < payAt.add(1 minutes))
-            revert InvalidPeriod(spHash);
-        if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
 
+        //1 minute is buffer to protect against miners gaming block time
+        //The recommended time for POW consensus finality is 1 minute
+        if (block.timestamp < payAt.add(1 minutes)) revert InvalidPeriod(spHash);
+        if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
         // execTransactionFromModule to execute the sheduled payment
         bytes memory spTxData = abi.encodeWithSelector(
             0xa9059cbb,
             payee,
             amount
         );
-        uint256 gasUsed = gasleft();
         if (!exec(token, 0, spTxData, Enum.Operation.Call))
             revert PaymentExecutionFailed(spHash);
-        gasUsed = gasUsed.sub(gasleft());
 
         // execTransactionFromModule for gas reimbursement
         bytes memory gasTxData = abi.encodeWithSelector(
             0xa9059cbb,
             IConfig(config).getFeeReceiver(),
-            gasUsed.mul(gasPrice)
+            baseGas.add(executionGas).mul(gasPrice)
         );
         if (!exec(gasToken, 0, gasTxData, Enum.Operation.Call))
             revert GasDeductionFailed(spHash);
 
         spHashes.remove(spHash);
         emit ScheduledPaymentExecuted(spHash);
+    }
+
+    function estimateExecutionGas(
+        address token,
+        uint256 amount,
+        address payee,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken
+    ) external returns (uint256) {
+        uint256 startGas = gasleft();
+        bytes memory spTxData = abi.encodeWithSelector(
+            0xa9059cbb,
+            payee,
+            amount
+        );
+        require(exec(token, 0, spTxData, Enum.Operation.Call));
+
+        uint256 gasUsed = startGas.sub(gasleft());
+        bytes memory gasTxData = abi.encodeWithSelector(
+            0xa9059cbb,
+            IConfig(config).getFeeReceiver(),
+            baseGas.add(gasUsed).mul(gasPrice)
+        );
+        require(exec(gasToken, 0, gasTxData, Enum.Operation.Call));
+
+        uint256 requiredGas = startGas - gasleft();
+        // Convert response to string and return via error message
+        revert(string(abi.encodePacked(requiredGas)));
     }
 
     function setConfig(address _config) external onlyOwner {
@@ -154,6 +186,8 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        uint256 baseGas,
+        uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
         uint256 _nonce,
@@ -165,6 +199,8 @@ contract ScheduledPaymentModule is Module {
                     token,
                     amount,
                     payee,
+                    baseGas,
+                    executionGas,
                     maxGasPrice,
                     gasToken,
                     _nonce,

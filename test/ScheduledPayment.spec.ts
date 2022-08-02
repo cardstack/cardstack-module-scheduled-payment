@@ -163,6 +163,8 @@ describe("ScheduledPaymentModule", async () => {
         AddressOne, //token
         "1000000000000", // amount
         AddressOne, //payee
+        "1000", //baseGas
+        "1000", //executionGas
         "10000000000", //maxGasPrice
         AddressOne, //gasToken
         await scheduledPaymentModule.nonce(),
@@ -180,6 +182,8 @@ describe("ScheduledPaymentModule", async () => {
         AddressOne, //token
         "1000000000000", // amount
         AddressOne, //payee
+        "1000", //baseGas
+        "1000", //executionGas
         "10000000000", //maxGasPrice
         AddressOne, //gasToken
         nonce,
@@ -226,6 +230,8 @@ describe("ScheduledPaymentModule", async () => {
         AddressOne, //token
         "1000000000000", // amount
         AddressOne, //payee
+        "1000", //baseGas
+        "1000", //executionGas
         "10000000000", //maxGasPrice
         AddressOne, //gasToken
         nonce,
@@ -262,6 +268,8 @@ describe("ScheduledPaymentModule", async () => {
         AddressOne, //token
         "1000000000000", // amount
         AddressOne, //payee
+        "1000", //baseGas
+        "1000", //executionGas
         "10000000000", //maxGasPrice
         AddressOne, //gasToken
         100,
@@ -322,9 +330,11 @@ describe("ScheduledPaymentModule", async () => {
       config: Contract,
       spHash: any,
       nonce: number,
-      payAt: number;
+      payAt: number,
+      executionGas: number;
     const tokenAmount = "1000000000000000000"; //1 eth
     const maxGasPrice = "10000000000";
+    const baseGas = "5000";
 
     beforeEach(async () => {
       const setupData = await setupTests();
@@ -341,10 +351,27 @@ describe("ScheduledPaymentModule", async () => {
 
       nonce = await scheduledPaymentModule.nonce();
       payAt = Math.floor(Date.now() / 1000) + 86400; //now + 1 day
+
+      try {
+        await scheduledPaymentModule.estimateExecutionGas(
+          token.address, //token
+          tokenAmount,
+          user3.address, //payee
+          baseGas,
+          maxGasPrice,
+          gasToken.address, //gasToken
+        );
+      } catch (e: any) {
+        const errors = e.message.split(" ");
+        executionGas = Buffer.from(errors[errors.length - 1])[32];
+      }
+
       spHash = await scheduledPaymentModule.createSpHash(
         token.address, //token
         tokenAmount,
         user3.address, //payee
+        baseGas,
+        executionGas,
         maxGasPrice,
         gasToken.address, //gasToken
         nonce,
@@ -376,6 +403,8 @@ describe("ScheduledPaymentModule", async () => {
           token.address, //token
           tokenAmount,
           user3.address, //payee
+          baseGas,
+          executionGas,
           maxGasPrice,
           gasToken.address, //gasToken
           nonce,
@@ -390,6 +419,8 @@ describe("ScheduledPaymentModule", async () => {
         AddressOne, //token
         "1000000000000", // amount
         AddressOne, //payee
+        baseGas,
+        executionGas,
         "10000000000", //maxGasPrice
         AddressOne, //gasToken,
         100,
@@ -401,6 +432,8 @@ describe("ScheduledPaymentModule", async () => {
           AddressOne, //token
           "1000000000000", // amount
           AddressOne, //payee
+          baseGas,
+          executionGas,
           "10000000000", //maxGasPrice
           AddressOne, //gasToken,
           100,
@@ -416,6 +449,8 @@ describe("ScheduledPaymentModule", async () => {
           token.address, //token
           tokenAmount,
           user3.address, //payee
+          baseGas,
+          executionGas,
           maxGasPrice,
           gasToken.address, //gasToken
           nonce,
@@ -433,6 +468,8 @@ describe("ScheduledPaymentModule", async () => {
         token.address, //token
         "100000000000000000000", //amount 100 eth
         user3.address, //payee
+        baseGas,
+        executionGas,
         maxGasPrice,
         gasToken.address, //gasToken
         newNonce,
@@ -462,6 +499,8 @@ describe("ScheduledPaymentModule", async () => {
           token.address, //token
           "100000000000000000000", //amount 100 eth
           user3.address, //payee
+          baseGas,
+          executionGas,
           maxGasPrice,
           gasToken.address, //gasToken
           newNonce,
@@ -479,6 +518,8 @@ describe("ScheduledPaymentModule", async () => {
         token.address, //token
         tokenAmount,
         user3.address, //payee
+        baseGas,
+        executionGas,
         "100000000000000000000", //maxGasPrice 100 eth
         gasToken.address, //gasToken
         newNonce,
@@ -508,6 +549,8 @@ describe("ScheduledPaymentModule", async () => {
           token.address, //token
           tokenAmount,
           user3.address, //payee
+          baseGas,
+          executionGas,
           "100000000000000000000", //maxGasPrice 100 eth
           gasToken.address, //gasToken
           newNonce,
@@ -522,12 +565,14 @@ describe("ScheduledPaymentModule", async () => {
       const payeeBalance = await token.balanceOf(user3.address);
       const feeReceiver = await config.getFeeReceiver();
       const feeReceiverBalance = await gasToken.balanceOf(feeReceiver);
-
+      
       await expect(
         scheduledPaymentModule.connect(user1).executeScheduledPayment(
           token.address, //token
           tokenAmount,
           user3.address, //payee
+          baseGas,
+          executionGas, //executionGas
           maxGasPrice,
           gasToken.address, //gasToken
           nonce,
@@ -545,6 +590,45 @@ describe("ScheduledPaymentModule", async () => {
         (await gasToken.balanceOf(feeReceiver)).gt(feeReceiverBalance),
         true
       );
+    });
+  });
+
+  describe("estimateExecutionGas()", async () => {
+    let avatar: Contract,
+      scheduledPaymentModule: Contract,
+      token: Contract,
+      gasToken: Contract;
+    const tokenAmount = "1000000000000000000"; //1 eth
+    const maxGasPrice = "10000000000";
+
+    beforeEach(async () => {
+      const setupData = await setupTests();
+      avatar = setupData.avatar;
+      scheduledPaymentModule = setupData.scheduledPaymentModule;
+      token = setupData.token;
+      gasToken = setupData.gasToken;
+
+      const mintAmount = "10000000000000000000"; //10 eth
+      await token.mint(avatar.address, mintAmount);
+      await gasToken.mint(avatar.address, mintAmount);
+    });
+
+    it("should revert estimation gas", async () => {
+      try {
+        await scheduledPaymentModule.estimateExecutionGas(
+          token.address, //token
+          tokenAmount,
+          user3.address, //payee
+          "10000", //baseGas
+          maxGasPrice,
+          gasToken.address //gasToken
+        );
+      } catch (e: any) {
+        const errors = e.message.split(" ");
+        const buffer = Buffer.from(errors[errors.length - 1])[32];
+
+        expect(buffer).to.be.gte(239);
+      }
     });
   });
 });
