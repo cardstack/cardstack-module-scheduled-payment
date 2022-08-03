@@ -10,6 +10,11 @@ import "@nomiclabs/hardhat-ethers";
 describe("ScheduledPaymentModule", async () => {
   const [user1, user2, user3] = waffle.provider.getWallets();
   const abiCoder = new ethers.utils.AbiCoder();
+  const transferAmount = "1000000000000";
+  const payee = user3.address;
+  const executionGas = "1000";
+  const maxGasPrice = "10000000000";
+  const payAt = new Date().getTime() + 86400;
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
@@ -158,17 +163,16 @@ describe("ScheduledPaymentModule", async () => {
 
   describe("schedulePayment()", async () => {
     it("throws if caller not avatar", async () => {
-      const { scheduledPaymentModule } = await setupTests();
+      const { scheduledPaymentModule, token, gasToken } = await setupTests();
       const spHash = await scheduledPaymentModule.createSpHash(
-        AddressOne, //token
-        "1000000000000", // amount
-        AddressOne, //payee
-        "1000", //baseGas
-        "1000", //executionGas
-        "10000000000", //maxGasPrice
-        AddressOne, //gasToken
+        token.address,
+        transferAmount,
+        payee,
+        executionGas,
+        maxGasPrice,
+        gasToken.address,
         await scheduledPaymentModule.nonce(),
-        "1659072885" //payAt
+        payAt
       );
       await expect(
         scheduledPaymentModule.connect(user2).schedulePayment(spHash)
@@ -176,18 +180,18 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("should emit event and add the spHash list", async () => {
-      const { tx, avatar, scheduledPaymentModule } = await setupTests();
+      const { tx, avatar, scheduledPaymentModule, token, gasToken } =
+        await setupTests();
       const nonce = await scheduledPaymentModule.nonce();
       const spHash = await scheduledPaymentModule.createSpHash(
-        AddressOne, //token
-        "1000000000000", // amount
-        AddressOne, //payee
-        "1000", //baseGas
-        "1000", //executionGas
-        "10000000000", //maxGasPrice
-        AddressOne, //gasToken
-        nonce,
-        "1659072885" //payAt
+        token.address,
+        transferAmount,
+        payee,
+        executionGas,
+        maxGasPrice,
+        gasToken.address,
+        await scheduledPaymentModule.nonce(),
+        payAt
       );
       const schedulePayment =
         await scheduledPaymentModule.populateTransaction.schedulePayment(
@@ -217,6 +221,8 @@ describe("ScheduledPaymentModule", async () => {
     let tx: any,
       avatar: Contract,
       scheduledPaymentModule: Contract,
+      token: Contract,
+      gasToken: Contract,
       spHash: any;
 
     beforeEach(async () => {
@@ -224,18 +230,19 @@ describe("ScheduledPaymentModule", async () => {
       tx = setupData.tx;
       avatar = setupData.avatar;
       scheduledPaymentModule = setupData.scheduledPaymentModule;
+      token = setupData.token;
+      gasToken = setupData.token;
 
       const nonce = await scheduledPaymentModule.nonce();
       spHash = await scheduledPaymentModule.createSpHash(
-        AddressOne, //token
-        "1000000000000", // amount
-        AddressOne, //payee
-        "1000", //baseGas
-        "1000", //executionGas
-        "10000000000", //maxGasPrice
-        AddressOne, //gasToken
+        token.address,
+        transferAmount,
+        payee,
+        executionGas,
+        maxGasPrice,
+        gasToken.address,
         nonce,
-        "1659072885" //payAt
+        payAt
       );
       const schedulePayment =
         await scheduledPaymentModule.populateTransaction.schedulePayment(
@@ -265,15 +272,14 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if hash unknown", async () => {
       const newSPHash = await scheduledPaymentModule.createSpHash(
-        AddressOne, //token
-        "1000000000000", // amount
-        AddressOne, //payee
-        "1000", //baseGas
-        "1000", //executionGas
-        "10000000000", //maxGasPrice
-        AddressOne, //gasToken
-        100,
-        "1659072885" //payAt
+        token.address,
+        transferAmount,
+        payee,
+        executionGas,
+        maxGasPrice,
+        gasToken.address,
+        1000,
+        payAt
       );
 
       const schedulePayment =
@@ -332,9 +338,6 @@ describe("ScheduledPaymentModule", async () => {
       nonce: number,
       payAt: number,
       executionGas: number;
-    const tokenAmount = "1000000000000000000"; //1 eth
-    const maxGasPrice = "10000000000";
-    const baseGas = "5000";
 
     beforeEach(async () => {
       const setupData = await setupTests();
@@ -354,26 +357,31 @@ describe("ScheduledPaymentModule", async () => {
 
       try {
         await scheduledPaymentModule.estimateExecutionGas(
-          token.address, //token
-          tokenAmount,
-          user3.address, //payee
-          baseGas,
+          token.address,
+          transferAmount,
+          payee,
+          0,
           maxGasPrice,
-          gasToken.address, //gasToken
+          gasToken.address,
+          nonce,
+          payAt,
+          maxGasPrice
         );
       } catch (e: any) {
-        const errors = e.message.split(" ");
-        executionGas = Buffer.from(errors[errors.length - 1])[32];
+        const error = e.message.split(" ");
+        executionGas = error[error.length - 1].replace(
+          /[\'GasEstimation\(|\)\']/g, //eslint-disable-line
+          ""
+        );
       }
 
       spHash = await scheduledPaymentModule.createSpHash(
-        token.address, //token
-        tokenAmount,
-        user3.address, //payee
-        baseGas,
+        token.address,
+        transferAmount,
+        payee,
         executionGas,
         maxGasPrice,
-        gasToken.address, //gasToken
+        gasToken.address,
         nonce,
         payAt
       );
@@ -399,79 +407,80 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if caller not a crank", async () => {
       await expect(
-        scheduledPaymentModule.connect(user2).executeScheduledPayment(
-          token.address, //token
-          tokenAmount,
-          user3.address, //payee
-          baseGas,
-          executionGas,
-          maxGasPrice,
-          gasToken.address, //gasToken
-          nonce,
-          payAt,
-          maxGasPrice
-        )
+        scheduledPaymentModule
+          .connect(user2)
+          .executeScheduledPayment(
+            token.address,
+            transferAmount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken.address,
+            nonce,
+            payAt,
+            maxGasPrice
+          )
       ).to.be.revertedWith("caller is not a crank");
     });
 
     it("throws if hash unknown", async () => {
       const newSPHash = await scheduledPaymentModule.createSpHash(
-        AddressOne, //token
-        "1000000000000", // amount
-        AddressOne, //payee
-        baseGas,
+        token.address,
+        transferAmount,
+        payee,
         executionGas,
-        "10000000000", //maxGasPrice
-        AddressOne, //gasToken,
-        100,
-        "1659072885" //payAt
+        maxGasPrice,
+        gasToken.address,
+        1000,
+        payAt
       );
 
       await expect(
-        scheduledPaymentModule.connect(user1).executeScheduledPayment(
-          AddressOne, //token
-          "1000000000000", // amount
-          AddressOne, //payee
-          baseGas,
-          executionGas,
-          "10000000000", //maxGasPrice
-          AddressOne, //gasToken,
-          100,
-          "1659072885", //payAt
-          "10000000000"
-        )
+        scheduledPaymentModule
+          .connect(user1)
+          .executeScheduledPayment(
+            token.address,
+            transferAmount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken.address,
+            1000,
+            payAt,
+            maxGasPrice
+          )
       ).to.be.revertedWith(`UnknownHash("${newSPHash}")`);
     });
 
     it("throws if execution before payAt + 1 minutes", async () => {
       await expect(
-        scheduledPaymentModule.connect(user1).executeScheduledPayment(
-          token.address, //token
-          tokenAmount,
-          user3.address, //payee
-          baseGas,
-          executionGas,
-          maxGasPrice,
-          gasToken.address, //gasToken
-          nonce,
-          payAt,
-          maxGasPrice
-        )
+        scheduledPaymentModule
+          .connect(user1)
+          .executeScheduledPayment(
+            token.address,
+            transferAmount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken.address,
+            nonce,
+            payAt,
+            maxGasPrice
+          )
       ).to.be.revertedWith(`InvalidPeriod("${spHash}")`);
     });
 
     it("throws if payment execution failed", async () => {
       await network.provider.send("evm_increaseTime", [payAt + 60]);
-
+      const exceedAmount = "1000000000000000000000"; //1000 eth
       const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule.createSpHash(
-        token.address, //token
-        "100000000000000000000", //amount 100 eth
-        user3.address, //payee
-        baseGas,
+        token.address,
+        exceedAmount,
+        payee,
         executionGas,
         maxGasPrice,
-        gasToken.address, //gasToken
+        gasToken.address,
         newNonce,
         payAt
       );
@@ -495,33 +504,33 @@ describe("ScheduledPaymentModule", async () => {
       );
 
       await expect(
-        scheduledPaymentModule.connect(user1).executeScheduledPayment(
-          token.address, //token
-          "100000000000000000000", //amount 100 eth
-          user3.address, //payee
-          baseGas,
-          executionGas,
-          maxGasPrice,
-          gasToken.address, //gasToken
-          newNonce,
-          payAt,
-          maxGasPrice
-        )
+        scheduledPaymentModule
+          .connect(user1)
+          .executeScheduledPayment(
+            token.address,
+            exceedAmount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken.address,
+            newNonce,
+            payAt,
+            maxGasPrice
+          )
       ).to.be.revertedWith(`PaymentExecutionFailed("${newSPHash}")`);
     });
 
     it("throws if gas deduction failed", async () => {
       await network.provider.send("evm_increaseTime", [payAt + 60]);
-
+      const exceedGasAmount = "1000000000000000000000"; //1000 eth
       const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule.createSpHash(
-        token.address, //token
-        tokenAmount,
-        user3.address, //payee
-        baseGas,
+        token.address,
+        transferAmount,
+        payee,
         executionGas,
-        "100000000000000000000", //maxGasPrice 100 eth
-        gasToken.address, //gasToken
+        exceedGasAmount,
+        gasToken.address,
         newNonce,
         payAt
       );
@@ -545,19 +554,70 @@ describe("ScheduledPaymentModule", async () => {
       );
 
       await expect(
-        scheduledPaymentModule.connect(user1).executeScheduledPayment(
-          token.address, //token
-          tokenAmount,
-          user3.address, //payee
-          baseGas,
-          executionGas,
-          "100000000000000000000", //maxGasPrice 100 eth
-          gasToken.address, //gasToken
-          newNonce,
-          payAt,
-          "100000000000000000000"
+        scheduledPaymentModule
+          .connect(user1)
+          .executeScheduledPayment(
+            token.address,
+            transferAmount,
+            payee,
+            executionGas,
+            exceedGasAmount,
+            gasToken.address,
+            newNonce,
+            payAt,
+            exceedGasAmount
+          )
+      ).to.be.revertedWith(`PaymentExecutionFailed("${newSPHash}")`);
+    });
+
+    it("throws if execution gas too low", async () => {
+      await network.provider.send("evm_increaseTime", [payAt + 60]);
+      const lowExecutionGas = "2500";
+      const newNonce = await scheduledPaymentModule.nonce();
+      const newSPHash = await scheduledPaymentModule.createSpHash(
+        token.address,
+        transferAmount,
+        payee,
+        lowExecutionGas,
+        maxGasPrice,
+        gasToken.address,
+        newNonce,
+        payAt
+      );
+      const schedulePayment =
+        await scheduledPaymentModule.populateTransaction.schedulePayment(
+          newSPHash
+        );
+      await expect(
+        avatar.execTransaction(
+          scheduledPaymentModule.address,
+          tx.value,
+          schedulePayment.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures
         )
-      ).to.be.revertedWith(`GasDeductionFailed("${newSPHash}")`);
+      );
+
+      await expect(
+        scheduledPaymentModule
+          .connect(user1)
+          .executeScheduledPayment(
+            token.address,
+            transferAmount,
+            payee,
+            lowExecutionGas,
+            maxGasPrice,
+            gasToken.address,
+            newNonce,
+            payAt,
+            maxGasPrice
+          )
+      ).to.be.revertedWith(`OutOfGas("${newSPHash}")`);
     });
 
     it("should emit event because of scheduled payment executed", async () => {
@@ -565,26 +625,27 @@ describe("ScheduledPaymentModule", async () => {
       const payeeBalance = await token.balanceOf(user3.address);
       const feeReceiver = await config.getFeeReceiver();
       const feeReceiverBalance = await gasToken.balanceOf(feeReceiver);
-      
+
       await expect(
-        scheduledPaymentModule.connect(user1).executeScheduledPayment(
-          token.address, //token
-          tokenAmount,
-          user3.address, //payee
-          baseGas,
-          executionGas, //executionGas
-          maxGasPrice,
-          gasToken.address, //gasToken
-          nonce,
-          payAt,
-          maxGasPrice
-        )
+        scheduledPaymentModule
+          .connect(user1)
+          .executeScheduledPayment(
+            token.address,
+            transferAmount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken.address,
+            nonce,
+            payAt,
+            maxGasPrice
+          )
       )
         .to.emit(scheduledPaymentModule, "ScheduledPaymentExecuted")
         .withArgs(spHash);
       assert.equal(
         (await token.balanceOf(user3.address)).toString(),
-        payeeBalance.add(tokenAmount).toString()
+        payeeBalance.add(transferAmount).toString()
       );
       assert.equal(
         (await gasToken.balanceOf(feeReceiver)).gt(feeReceiverBalance),
@@ -598,8 +659,6 @@ describe("ScheduledPaymentModule", async () => {
       scheduledPaymentModule: Contract,
       token: Contract,
       gasToken: Contract;
-    const tokenAmount = "1000000000000000000"; //1 eth
-    const maxGasPrice = "10000000000";
 
     beforeEach(async () => {
       const setupData = await setupTests();
@@ -615,19 +674,30 @@ describe("ScheduledPaymentModule", async () => {
 
     it("should revert estimation gas", async () => {
       try {
+        const nonce = await scheduledPaymentModule.nonce();
         await scheduledPaymentModule.estimateExecutionGas(
-          token.address, //token
-          tokenAmount,
-          user3.address, //payee
-          "10000", //baseGas
+          token.address,
+          transferAmount,
+          payee,
+          0,
           maxGasPrice,
-          gasToken.address //gasToken
+          gasToken.address,
+          nonce,
+          payAt,
+          maxGasPrice
         );
       } catch (e: any) {
-        const errors = e.message.split(" ");
-        const buffer = Buffer.from(errors[errors.length - 1])[32];
+        const error = e.message.split(" ");
+        const gas = error[error.length - 1].replace(
+          /[\'GasEstimation\(|\)\']/g, //eslint-disable-line
+          ""
+        );
 
-        expect(buffer).to.be.gte(239);
+        //3200 baseGas
+        //2500 emit event cost
+        //500 other actions
+        const baseGas = 3200 + 2500 + 500;
+        expect(Number(gas)).to.be.gte(baseGas);
       }
     });
   });
