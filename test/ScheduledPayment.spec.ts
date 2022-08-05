@@ -603,8 +603,8 @@ describe("ScheduledPaymentModule", async () => {
         )
       );
 
-      await expect(
-        scheduledPaymentModule
+      try {
+        await scheduledPaymentModule
           .connect(user1)
           .executeScheduledPayment(
             token.address,
@@ -616,8 +616,11 @@ describe("ScheduledPaymentModule", async () => {
             newNonce,
             payAt,
             maxGasPrice
-          )
-      ).to.be.revertedWith(`OutOfGas("${newSPHash}", 107997)`);
+          );
+      } catch (e: any) {
+        const errors = e.message.split(" '");
+        assert.equal(/OutOfGas.*/g.test(errors[errors.length - 1]), true);
+      }
     });
 
     it("should emit event because of scheduled payment executed", async () => {
