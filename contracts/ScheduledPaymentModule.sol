@@ -26,7 +26,7 @@ contract ScheduledPaymentModule is Module {
     error InvalidPeriod(bytes32 spHash);
     error ExceedMaxGasPrice(bytes32 spHash);
     error PaymentExecutionFailed(bytes32 spHash);
-    error OutOfGas(bytes32 spHash);
+    error OutOfGas(bytes32 spHash, uint256 gasUsed);
     error GasEstimation(uint256 gas);
 
     bytes4 public constant TRANSFER =
@@ -120,29 +120,27 @@ contract ScheduledPaymentModule is Module {
             _nonce,
             payAt
         );
-        if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
 
+        if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
         // 1 minute is buffer to protect against miners gaming block time
         // The recommended time for POW consensus finality is 1 minute
         if (block.timestamp < payAt.add(1 minutes))
             revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
-
         if (
-            !executePayment(
+            !_executeScheduledPayment(
+                spHash,
                 token,
                 amount,
                 payee,
                 executionGas,
-                gasPrice,
-                gasToken
+                gasToken,
+                gasPrice
             )
         ) revert PaymentExecutionFailed(spHash);
-        if (startGas - gasleft() + 2500 + 500 > executionGas)
-            revert OutOfGas(spHash);
 
-        spHashes.remove(spHash);
-        emit ScheduledPaymentExecuted(spHash);
+        uint256 gasUsed = startGas - gasleft();
+        if (gasUsed > executionGas) revert OutOfGas(spHash, gasUsed);
     }
 
     function estimateExecutionGas(
@@ -176,22 +174,25 @@ contract ScheduledPaymentModule is Module {
         executionGas = executionGas > 0
             ? executionGas
             : 32000 + 1500 + 95225 + 2500;
+
+        // We don't provide an error message here, as we use it to return the estimate
         require(
-            executePayment(
+            _executeScheduledPayment(
+                spHash,
                 token,
                 amount,
                 payee,
                 executionGas,
-                gasPrice,
-                gasToken
+                gasToken,
+                gasPrice
             )
         );
-        spHashes.remove(spHash);
 
-        // Add with emit event cost and other cost
-        uint256 requiredGas = startGas - gasleft() + 2500 + 500;
-
-        // Convert response to string and return via error message
+        // 500 required checks cost
+        // 9500 remove value from set cost
+        // 500 other cost
+        uint256 requiredGas = startGas - gasleft() + 9500 + 500 + 500;
+        // Return gas estimation result via error message
         revert GasEstimation(requiredGas);
     }
 
@@ -227,6 +228,28 @@ contract ScheduledPaymentModule is Module {
 
     function getSpHashes() public view returns (bytes32[] memory) {
         return spHashes.values();
+    }
+
+    function _executeScheduledPayment(
+        bytes32 spHash,
+        address token,
+        uint256 amount,
+        address payee,
+        uint256 executionGas,
+        address gasToken,
+        uint256 gasPrice
+    ) private returns (bool status) {
+        status = executePayment(
+            token,
+            amount,
+            payee,
+            executionGas,
+            gasPrice,
+            gasToken
+        );
+
+        spHashes.remove(spHash);
+        emit ScheduledPaymentExecuted(spHash);
     }
 
     function executePayment(

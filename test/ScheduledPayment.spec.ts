@@ -617,7 +617,7 @@ describe("ScheduledPaymentModule", async () => {
             payAt,
             maxGasPrice
           )
-      ).to.be.revertedWith(`OutOfGas("${newSPHash}")`);
+      ).to.be.revertedWith(`OutOfGas("${newSPHash}", 107997)`);
     });
 
     it("should emit event because of scheduled payment executed", async () => {
