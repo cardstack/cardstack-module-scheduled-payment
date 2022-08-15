@@ -5,6 +5,7 @@ import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "./interfaces/IConfig.sol";
+import "./utils/BokkyPooBahsDateTimeLibrary.sol";
 
 contract ScheduledPaymentModule is Module {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
@@ -22,6 +23,7 @@ contract ScheduledPaymentModule is Module {
     event ScheduledPaymentExecuted(bytes32 spHash);
     event ConfigSet(address config);
 
+    error AlreadyScheduled(bytes32 spHash);
     error UnknownHash(bytes32 spHash);
     error InvalidPeriod(bytes32 spHash);
     error ExceedMaxGasPrice(bytes32 spHash);
@@ -35,6 +37,8 @@ contract ScheduledPaymentModule is Module {
     address public config;
     uint256 public nonce;
     EnumerableSetUpgradeable.Bytes32Set private spHashes;
+    //Mapping RSP hash to last paid at
+    mapping(bytes32 => uint256) public lastPaidAt;
 
     modifier onlyAvatar() {
         require(msg.sender == avatar, "caller is not the right avatar");
@@ -86,6 +90,8 @@ contract ScheduledPaymentModule is Module {
     }
 
     function schedulePayment(bytes32 spHash) external onlyAvatar {
+        if (spHashes.contains(spHash)) revert AlreadyScheduled(spHash);
+
         spHashes.add(spHash);
         emit PaymentScheduled(nonce, spHash);
         nonce++;
@@ -98,6 +104,7 @@ contract ScheduledPaymentModule is Module {
         emit ScheduledPaymentCancelled(spHash);
     }
 
+    // Execute scheduled one-time payment
     function executeScheduledPayment(
         address token,
         uint256 amount,
@@ -128,7 +135,7 @@ contract ScheduledPaymentModule is Module {
             revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
         if (
-            !_executeScheduledPayment(
+            !_executeOneTimePayment(
                 spHash,
                 token,
                 amount,
@@ -143,11 +150,11 @@ contract ScheduledPaymentModule is Module {
         if (gasUsed > executionGas) revert OutOfGas(spHash, gasUsed);
     }
 
+    // Estimate scheduled one-time payment execution
     function estimateExecutionGas(
         address token,
         uint256 amount,
         address payee,
-        uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
         uint256 _nonce,
@@ -155,6 +162,12 @@ contract ScheduledPaymentModule is Module {
         uint256 gasPrice
     ) external returns (uint256) {
         uint256 startGas = gasleft();
+        // This executionGas calculation only for estimation purpose
+        // 32000 base cost, base transfer cost, etc
+        // 1500 keccak hash cost
+        // 95225  standard 2x ERC20 transfer cost
+        // 2500 emit event cost
+        uint256 executionGas = 32000 + 1500 + 95225 + 2500;
         bytes32 spHash = createSpHash(
             token,
             amount,
@@ -166,18 +179,9 @@ contract ScheduledPaymentModule is Module {
             payAt
         );
 
-        // This executionGas calculation only for estimation purpose
-        // 32000 base cost, base transfer cost, etc
-        // 1500 keccak hash cost
-        // 95225  standard 2x ERC20 transfer cost
-        // 2500 emit event cost
-        executionGas = executionGas > 0
-            ? executionGas
-            : 32000 + 1500 + 95225 + 2500;
-
         // We don't provide an error message here, as we use it to return the estimate
         require(
-            _executeScheduledPayment(
+            _executeOneTimePayment(
                 spHash,
                 token,
                 amount,
@@ -196,11 +200,113 @@ contract ScheduledPaymentModule is Module {
         revert GasEstimation(requiredGas);
     }
 
+    // Execute scheduled recurring payment
+    function executeScheduledPayment(
+        address token,
+        uint256 amount,
+        address payee,
+        uint256 executionGas,
+        uint256 maxGasPrice,
+        address gasToken,
+        uint256 _nonce,
+        uint256 recursDayOfMonth,
+        uint256 until,
+        uint256 gasPrice
+    ) external onlyCrank {
+        uint256 startGas = gasleft();
+        bytes32 spHash = createSpHash(
+            token,
+            amount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken,
+            _nonce,
+            recursDayOfMonth,
+            until
+        );
+        if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
+        if (
+            BokkyPooBahsDateTimeLibrary.getDay(block.timestamp) <
+            recursDayOfMonth ||
+            block.timestamp.sub(lastPaidAt[spHash]) < 28 days || //recursDayOfMont value range 1-28
+            block.timestamp > until
+        ) revert InvalidPeriod(spHash);
+        if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
+
+        if (
+            !_executeRecurringPayment(
+                spHash,
+                token,
+                amount,
+                payee,
+                executionGas,
+                gasToken,
+                gasPrice
+            )
+        ) revert PaymentExecutionFailed(spHash);
+        if (startGas - gasleft() > executionGas)
+            revert OutOfGas(spHash, startGas - gasleft());
+    }
+
+    // Estimate scheduled recurring payment execution
+    function estimateExecutionGas(
+        address token,
+        uint256 amount,
+        address payee,
+        uint256 maxGasPrice,
+        address gasToken,
+        uint256 _nonce,
+        uint256 recursDayOfMonth,
+        uint256 until,
+        uint256 gasPrice
+    ) external returns (uint256) {
+        uint256 startGas = gasleft();
+        // This executionGas calculation only for estimation purpose
+        // 32000 base cost, base transfer cost, etc
+        // 1500 keccak hash cost
+        // 95225  standard 2x ERC20 transfer cost
+        // 2500 emit event cost
+        uint256 executionGas = 32000 + 1500 + 95225 + 2500;
+        bytes32 spHash = createSpHash(
+            token,
+            amount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken,
+            _nonce,
+            recursDayOfMonth,
+            until
+        );
+
+        // We don't provide an error message here, as we use it to return the estimate
+        require(
+            _executeRecurringPayment(
+                spHash,
+                token,
+                amount,
+                payee,
+                executionGas,
+                gasToken,
+                gasPrice
+            )
+        );
+
+        // 500 required checks cost
+        // 9000 convert timestamp to day
+        // 500 other cost
+        uint256 requiredGas = startGas - gasleft() + 9000 + 500 + 500;
+        // Return gas estimation result via error message
+        revert GasEstimation(requiredGas);
+    }
+
     function setConfig(address _config) external onlyOwner {
         config = _config;
         emit ConfigSet(_config);
     }
 
+    // Create a one-time payment hash
     function createSpHash(
         address token,
         uint256 amount,
@@ -226,11 +332,39 @@ contract ScheduledPaymentModule is Module {
             );
     }
 
+    // Create recurring payment hash
+    function createSpHash(
+        address token,
+        uint256 amount,
+        address payee,
+        uint256 executionGas,
+        uint256 maxGasPrice,
+        address gasToken,
+        uint256 _nonce,
+        uint256 recursDayOfMonth,
+        uint256 until
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    token,
+                    amount,
+                    payee,
+                    executionGas,
+                    maxGasPrice,
+                    gasToken,
+                    _nonce,
+                    recursDayOfMonth,
+                    until
+                )
+            );
+    }
+
     function getSpHashes() public view returns (bytes32[] memory) {
         return spHashes.values();
     }
 
-    function _executeScheduledPayment(
+    function _executeOneTimePayment(
         bytes32 spHash,
         address token,
         uint256 amount,
@@ -249,6 +383,28 @@ contract ScheduledPaymentModule is Module {
         );
 
         spHashes.remove(spHash);
+        emit ScheduledPaymentExecuted(spHash);
+    }
+
+    function _executeRecurringPayment(
+        bytes32 spHash,
+        address token,
+        uint256 amount,
+        address payee,
+        uint256 executionGas,
+        address gasToken,
+        uint256 gasPrice
+    ) private returns (bool status) {
+        status = executePayment(
+            token,
+            amount,
+            payee,
+            executionGas,
+            gasPrice,
+            gasToken
+        );
+
+        lastPaidAt[spHash] = block.timestamp;
         emit ScheduledPaymentExecuted(spHash);
     }
 
