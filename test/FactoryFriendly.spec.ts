@@ -7,7 +7,7 @@ import "@nomiclabs/hardhat-ethers";
 const saltNonce = "0xfa";
 
 describe("Module works with factory", () => {
-  const paramsTypes = ["address", "address", "address", "address"];
+  const paramsTypes = ["address", "address", "address", "address", "address"];
 
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
@@ -18,6 +18,7 @@ describe("Module works with factory", () => {
     const factory = await Factory.deploy();
 
     const masterCopy = await ScheduledPaymentModule.deploy(
+      AddressOne,
       AddressOne,
       AddressOne,
       AddressOne,
@@ -34,16 +35,23 @@ describe("Module works with factory", () => {
       AddressOne,
       AddressOne,
       AddressOne,
+      AddressOne,
     ]);
     await expect(masterCopy.setUp(encodedParams)).to.be.revertedWith(
       "Initializable: contract is already initialized"
     );
   });
 
-  it("should deploy new protect meta guard proxy", async () => {
+  it("should deploy new protect module proxy", async () => {
     const { factory, masterCopy } = await baseSetup();
     const [owner] = await ethers.getSigners();
-    const paramsValues = [owner.address, owner.address, AddressOne, AddressOne];
+    const paramsValues = [
+      owner.address,
+      owner.address,
+      AddressOne,
+      AddressOne,
+      AddressOne,
+    ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
     const initParams = masterCopy.interface.encodeFunctionData(
       "setUp",
