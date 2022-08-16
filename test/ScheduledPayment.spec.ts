@@ -768,7 +768,7 @@ describe("ScheduledPaymentModule", async () => {
 
       nonce = await scheduledPaymentModule.nonce();
       recursDayOfMonth = 25;
-      until = Math.round(new Date().getTime() / 1000) + 7.884e6; //until three month from now
+      until = moment().add(3, "months").set("date", 28).unix(); //until the 28th of the following three months
 
       try {
         await scheduledPaymentModule[
@@ -1195,6 +1195,92 @@ describe("ScheduledPaymentModule", async () => {
         (await gasToken.balanceOf(feeReceiver)).gt(feeReceiverBalance),
         true
       );
+    });
+
+    it("should emit event and not remove the hash if not the last execution", async () => {
+      const blockTimestamp = moment().set("date", recursDayOfMonth);
+      await network.provider.send("evm_setNextBlockTimestamp", [
+        blockTimestamp.unix(),
+      ]);
+      const payeeBalance = await token.balanceOf(user3.address);
+      const feeReceiver = await config.getFeeReceiver();
+      const feeReceiverBalance = await gasToken.balanceOf(feeReceiver);
+
+      await expect(
+        scheduledPaymentModule
+          .connect(user1)
+          [
+            "executeScheduledPayment(address,uint256,address,uint256,uint256,address,uint256,uint256,uint256,uint256)"
+          ](
+            token.address,
+            transferAmount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken.address,
+            nonce,
+            recursDayOfMonth,
+            until,
+            maxGasPrice
+          )
+      )
+        .to.emit(scheduledPaymentModule, "ScheduledPaymentExecuted")
+        .withArgs(spHash);
+      assert.equal(
+        (await token.balanceOf(user3.address)).toString(),
+        payeeBalance.add(transferAmount).toString()
+      );
+      assert.equal(
+        (await gasToken.balanceOf(feeReceiver)).gt(feeReceiverBalance),
+        true
+      );
+      assert.equal(
+        (await scheduledPaymentModule.getSpHashes()).includes(spHash),
+        true
+      )
+    });
+
+    it("should emit event and remove the hash if the last execution", async () => {
+      const blockTimestamp = moment.unix(until).set("date", recursDayOfMonth);
+      await network.provider.send("evm_setNextBlockTimestamp", [
+        blockTimestamp.unix(),
+      ]);
+      const payeeBalance = await token.balanceOf(user3.address);
+      const feeReceiver = await config.getFeeReceiver();
+      const feeReceiverBalance = await gasToken.balanceOf(feeReceiver);
+
+      await expect(
+        scheduledPaymentModule
+          .connect(user1)
+          [
+            "executeScheduledPayment(address,uint256,address,uint256,uint256,address,uint256,uint256,uint256,uint256)"
+          ](
+            token.address,
+            transferAmount,
+            payee,
+            executionGas,
+            maxGasPrice,
+            gasToken.address,
+            nonce,
+            recursDayOfMonth,
+            until,
+            maxGasPrice
+          )
+      )
+        .to.emit(scheduledPaymentModule, "ScheduledPaymentExecuted")
+        .withArgs(spHash);
+      assert.equal(
+        (await token.balanceOf(user3.address)).toString(),
+        payeeBalance.add(transferAmount).toString()
+      );
+      assert.equal(
+        (await gasToken.balanceOf(feeReceiver)).gt(feeReceiverBalance),
+        true
+      );
+      assert.equal(
+        (await scheduledPaymentModule.getSpHashes()).includes(spHash),
+        false
+      )
     });
   });
 });
