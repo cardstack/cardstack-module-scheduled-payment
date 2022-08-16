@@ -260,7 +260,7 @@ contract ScheduledPaymentModule is Module {
         if (
             BokkyPooBahsDateTimeLibrary.getDay(block.timestamp) <
             recursDayOfMonth ||
-            block.timestamp.sub(lastPaidAt[spHash]) < 28 days || //recursDayOfMont value range 1-28
+            block.timestamp.sub(lastPaidAt[spHash]) < 28 days || //recursDayOfMonth value range 1-28
             block.timestamp > until
         ) revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
@@ -274,7 +274,9 @@ contract ScheduledPaymentModule is Module {
                 fee,
                 executionGas,
                 gasToken,
-                gasPrice
+                gasPrice,
+                recursDayOfMonth,
+                until
             )
         ) revert PaymentExecutionFailed(spHash);
         if (startGas - gasleft() > executionGas)
@@ -324,14 +326,18 @@ contract ScheduledPaymentModule is Module {
                 fee,
                 executionGas,
                 gasToken,
-                gasPrice
+                gasPrice,
+                recursDayOfMonth,
+                until
             )
         );
 
         // 500 required checks cost
         // 9000 convert timestamp to day
-        // 500 other cost
-        uint256 requiredGas = startGas - gasleft() + 9000 + 500 + 500;
+        // 9500 remove value from set cost
+        // 1500 delete from map cost
+        // 2000 other cost
+        uint256 requiredGas = startGas - gasleft() + 9000 + 9500 + 1500 + 500 + 2000;
         // Return gas estimation result via error message
         revert GasEstimation(requiredGas);
     }
@@ -437,7 +443,9 @@ contract ScheduledPaymentModule is Module {
         Fee calldata fee,
         uint256 executionGas,
         address gasToken,
-        uint256 gasPrice
+        uint256 gasPrice,
+        uint256 recursDayOfMonth,
+        uint256 until
     ) private returns (bool status) {
         status = executePayment(
             token,
@@ -451,6 +459,13 @@ contract ScheduledPaymentModule is Module {
 
         lastPaidAt[spHash] = block.timestamp;
         emit ScheduledPaymentExecuted(spHash);
+
+        uint256 dayInSeconds = 86400;
+        uint256 nextExecution = recursDayOfMonth.mul(dayInSeconds).add(lastPaidAt[spHash]);
+        if(nextExecution > until) {
+            spHashes.remove(spHash);
+            delete lastPaidAt[spHash];
+        }
     }
 
     function executePayment(
