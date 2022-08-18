@@ -4,8 +4,11 @@ pragma solidity ^0.8.9;
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IConfig.sol";
+import "./interfaces/IExchange.sol";
 import "./utils/BokkyPooBahsDateTimeLibrary.sol";
+import "./utils/Decimal.sol";
 
 contract ScheduledPaymentModule is Module {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
@@ -16,7 +19,8 @@ contract ScheduledPaymentModule is Module {
         address indexed owner,
         address indexed avatar,
         address target,
-        address config
+        address config,
+        address exchange
     );
     event PaymentScheduled(uint256 nonce, bytes32 spHash);
     event ScheduledPaymentCancelled(bytes32 spHash);
@@ -31,10 +35,16 @@ contract ScheduledPaymentModule is Module {
     error OutOfGas(bytes32 spHash, uint256 gasUsed);
     error GasEstimation(uint256 gas);
 
+    struct Fee {
+        Decimal.D256 fixedUSD;
+        Decimal.D256 percentage;
+    }
+
     bytes4 public constant TRANSFER =
         bytes4(keccak256("transfer(address,uint256)"));
 
     address public config;
+    address public exchange;
     uint256 public nonce;
     EnumerableSetUpgradeable.Bytes32Set private spHashes;
     //Mapping RSP hash to last paid at
@@ -57,9 +67,16 @@ contract ScheduledPaymentModule is Module {
         address _owner,
         address _avatar,
         address _target,
-        address _config
+        address _config,
+        address _exchange
     ) {
-        bytes memory initParams = abi.encode(_owner, _avatar, _target, _config);
+        bytes memory initParams = abi.encode(
+            _owner,
+            _avatar,
+            _target,
+            _config,
+            _exchange
+        );
         setUp(initParams);
     }
 
@@ -68,8 +85,12 @@ contract ScheduledPaymentModule is Module {
             address _owner,
             address _avatar,
             address _target,
-            address _config
-        ) = abi.decode(initParams, (address, address, address, address));
+            address _config,
+            address _exchange
+        ) = abi.decode(
+                initParams,
+                (address, address, address, address, address)
+            );
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
@@ -77,6 +98,7 @@ contract ScheduledPaymentModule is Module {
         avatar = _avatar;
         target = _target;
         config = _config;
+        exchange = _exchange;
 
         transferOwnership(_owner);
 
@@ -85,7 +107,8 @@ contract ScheduledPaymentModule is Module {
             _owner,
             _avatar,
             _target,
-            _config
+            _config,
+            _exchange
         );
     }
 
@@ -109,6 +132,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
@@ -121,6 +145,7 @@ contract ScheduledPaymentModule is Module {
             token,
             amount,
             payee,
+            fee,
             executionGas,
             maxGasPrice,
             gasToken,
@@ -140,6 +165,7 @@ contract ScheduledPaymentModule is Module {
                 token,
                 amount,
                 payee,
+                fee,
                 executionGas,
                 gasToken,
                 gasPrice
@@ -155,6 +181,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 maxGasPrice,
         address gasToken,
         uint256 _nonce,
@@ -172,6 +199,7 @@ contract ScheduledPaymentModule is Module {
             token,
             amount,
             payee,
+            fee,
             executionGas,
             maxGasPrice,
             gasToken,
@@ -186,6 +214,7 @@ contract ScheduledPaymentModule is Module {
                 token,
                 amount,
                 payee,
+                fee,
                 executionGas,
                 gasToken,
                 gasPrice
@@ -205,6 +234,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
@@ -218,6 +248,7 @@ contract ScheduledPaymentModule is Module {
             token,
             amount,
             payee,
+            fee,
             executionGas,
             maxGasPrice,
             gasToken,
@@ -240,6 +271,7 @@ contract ScheduledPaymentModule is Module {
                 token,
                 amount,
                 payee,
+                fee,
                 executionGas,
                 gasToken,
                 gasPrice
@@ -254,6 +286,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 maxGasPrice,
         address gasToken,
         uint256 _nonce,
@@ -272,6 +305,7 @@ contract ScheduledPaymentModule is Module {
             token,
             amount,
             payee,
+            fee,
             executionGas,
             maxGasPrice,
             gasToken,
@@ -287,6 +321,7 @@ contract ScheduledPaymentModule is Module {
                 token,
                 amount,
                 payee,
+                fee,
                 executionGas,
                 gasToken,
                 gasPrice
@@ -311,6 +346,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
@@ -323,6 +359,8 @@ contract ScheduledPaymentModule is Module {
                     token,
                     amount,
                     payee,
+                    fee.fixedUSD.value,
+                    fee.percentage.value,
                     executionGas,
                     maxGasPrice,
                     gasToken,
@@ -337,6 +375,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
@@ -350,6 +389,8 @@ contract ScheduledPaymentModule is Module {
                     token,
                     amount,
                     payee,
+                    fee.fixedUSD.value,
+                    fee.percentage.value,
                     executionGas,
                     maxGasPrice,
                     gasToken,
@@ -369,6 +410,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 executionGas,
         address gasToken,
         uint256 gasPrice
@@ -377,6 +419,7 @@ contract ScheduledPaymentModule is Module {
             token,
             amount,
             payee,
+            fee,
             executionGas,
             gasPrice,
             gasToken
@@ -391,6 +434,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 executionGas,
         address gasToken,
         uint256 gasPrice
@@ -399,6 +443,7 @@ contract ScheduledPaymentModule is Module {
             token,
             amount,
             payee,
+            fee,
             executionGas,
             gasPrice,
             gasToken
@@ -412,6 +457,7 @@ contract ScheduledPaymentModule is Module {
         address token,
         uint256 amount,
         address payee,
+        Fee calldata fee,
         uint256 executionGas,
         uint256 gasPrice,
         address gasToken
@@ -424,14 +470,35 @@ contract ScheduledPaymentModule is Module {
         );
         bool spTxStatus = exec(token, 0, spTxData, Enum.Operation.Call);
 
-        // execTransactionFromModule for gas reimbursement
+        // execTransactionFromModule for percentage fee
+        bytes memory feeTxData = abi.encodeWithSelector(
+            0xa9059cbb,
+            IConfig(config).getFeeReceiver(),
+            Decimal.mul(amount, fee.percentage)
+        );
+        bool feeTxStatus = exec(token, 0, feeTxData, Enum.Operation.Call);
+
+        // execTransactionFromModule for fixed fee and gas reimbursement
         bytes memory gasTxData = abi.encodeWithSelector(
             0xa9059cbb,
             IConfig(config).getFeeReceiver(),
-            executionGas.mul(gasPrice)
+            executionGas.mul(gasPrice).add(calculateFixedFee(gasToken, fee))
         );
         bool gasTxStatus = exec(gasToken, 0, gasTxData, Enum.Operation.Call);
 
-        return spTxStatus && gasTxStatus;
+        return spTxStatus && feeTxStatus && gasTxStatus;
+    }
+
+    function calculateFixedFee(address token, Fee calldata fee)
+        private
+        returns (uint256)
+    {
+        Decimal.D256 memory usdRate = IExchange(exchange).exchangeRateOf(token);
+
+        require(usdRate.value > 0, "exchange rate cannot be 0");
+        uint8 tokenDecimals = ERC20(token).decimals();
+        uint256 ten = 10;
+        return
+            Decimal.div(Decimal.mul(ten**tokenDecimals, fee.fixedUSD), usdRate);
     }
 }
