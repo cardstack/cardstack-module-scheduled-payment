@@ -5,6 +5,7 @@ coverage.json
 typechain
 typechain-types
 *.log
+deployments
 
 #Hardhat files
 cache
@@ -21,3 +22,5 @@ typechain-types
 #Hardhat files
 cache
 artifacts
+
+.openzeppelin

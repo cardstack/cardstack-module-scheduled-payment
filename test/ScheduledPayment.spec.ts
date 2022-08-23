@@ -936,7 +936,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("throws if execution before recurs day", async () => {
-      const blockTimestamp = moment().set("date", recursDayOfMonth - 2);
+      const blockTimestamp = moment.unix(until).set("date", recursDayOfMonth - 2);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);
@@ -1316,7 +1316,7 @@ describe("ScheduledPaymentModule", async () => {
       assert.equal(
         (await scheduledPaymentModule.getSpHashes()).includes(spHash),
         true
-      )
+      );
     });
 
     it("should emit event and remove the hash if the last execution", async () => {
@@ -1360,7 +1360,7 @@ describe("ScheduledPaymentModule", async () => {
       assert.equal(
         (await scheduledPaymentModule.getSpHashes()).includes(spHash),
         false
-      )
+      );
     });
   });
 });
