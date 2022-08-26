@@ -6,6 +6,7 @@ typechain
 typechain-types
 *.log
 .openzeppelin
+deployments
 
 #Hardhat files
 cache
@@ -22,3 +23,5 @@ typechain-types
 #Hardhat files
 cache
 artifacts
+
+.openzeppelin
