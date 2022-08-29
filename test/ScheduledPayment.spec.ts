@@ -25,8 +25,8 @@ describe("ScheduledPaymentModule", async () => {
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
     const Token = await hre.ethers.getContractFactory("TestToken");
-    const token = await Token.deploy("TestToken", "TestToken");
-    const gasToken = await Token.deploy("GasToken", "GasToken");
+    const token = await Token.deploy("TestToken", "TestToken", 18);
+    const gasToken = await Token.deploy("GasToken", "GasToken", 18);
     const Config = await hre.ethers.getContractFactory("TestConfig");
     const config = await Config.deploy(user1.address, user1.address);
     const Exchange = await hre.ethers.getContractFactory("TestExchange");
@@ -936,7 +936,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("throws if execution before recurs day", async () => {
-      const blockTimestamp = moment.unix(until).set("date", recursDayOfMonth - 2);
+      const blockTimestamp = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth - 2);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);
@@ -962,7 +962,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("throws if payment has been executed on that month", async () => {
-      const blockTimestamp = moment().set("date", recursDayOfMonth);
+      const blockTimestamp = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);
@@ -988,7 +988,7 @@ describe("ScheduledPaymentModule", async () => {
         .to.emit(scheduledPaymentModule, "ScheduledPaymentExecuted")
         .withArgs(spHash);
 
-      const blockTimestamp2 = moment().set("date", recursDayOfMonth + 2);
+      const blockTimestamp2 = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth + 2);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp2.unix(),
       ]);
@@ -1037,7 +1037,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("throws if payment execution failed", async () => {
-      const blockTimestamp = moment().set("date", recursDayOfMonth);
+      const blockTimestamp = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);
@@ -1098,7 +1098,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("throws if gas deduction failed", async () => {
-      const blockTimestamp = moment().set("date", recursDayOfMonth);
+      const blockTimestamp = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);
@@ -1159,7 +1159,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("throws if execution gas too low", async () => {
-      const blockTimestamp = moment().set("date", recursDayOfMonth);
+      const blockTimestamp = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);
@@ -1223,7 +1223,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("should emit event because of scheduled payment executed", async () => {
-      const blockTimestamp = moment().set("date", recursDayOfMonth);
+      const blockTimestamp = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);
@@ -1276,7 +1276,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("should emit event and not remove the hash if not the last execution", async () => {
-      const blockTimestamp = moment().set("date", recursDayOfMonth);
+      const blockTimestamp = moment.unix(until).subtract(1, 'months').set("date", recursDayOfMonth);
       await network.provider.send("evm_setNextBlockTimestamp", [
         blockTimestamp.unix(),
       ]);

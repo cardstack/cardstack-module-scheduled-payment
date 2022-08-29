@@ -516,6 +516,7 @@ contract ScheduledPaymentModule is Module {
         private
         returns (uint256)
     {
+        if (fee.fixedUSD.value == 0) return 0;
         Decimal.D256 memory usdRate = IExchange(exchange).exchangeRateOf(token);
 
         require(usdRate.value > 0, "exchange rate cannot be 0");
