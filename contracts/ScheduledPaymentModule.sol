@@ -22,7 +22,7 @@ contract ScheduledPaymentModule is Module {
         address config,
         address exchange
     );
-    event PaymentScheduled(uint256 nonce, bytes32 spHash);
+    event PaymentScheduled(bytes32 spHash);
     event ScheduledPaymentCancelled(bytes32 spHash);
     event ScheduledPaymentExecuted(bytes32 spHash);
     event ConfigSet(address config);
@@ -45,7 +45,6 @@ contract ScheduledPaymentModule is Module {
 
     address public config;
     address public exchange;
-    uint256 public nonce;
     EnumerableSetUpgradeable.Bytes32Set private spHashes;
     //Mapping RSP hash to last paid at
     mapping(bytes32 => uint256) public lastPaidAt;
@@ -116,8 +115,7 @@ contract ScheduledPaymentModule is Module {
         if (spHashes.contains(spHash)) revert AlreadyScheduled(spHash);
 
         spHashes.add(spHash);
-        emit PaymentScheduled(nonce, spHash);
-        nonce++;
+        emit PaymentScheduled(spHash);
     }
 
     function cancelScheduledPayment(bytes32 spHash) external onlyAvatar {
@@ -136,7 +134,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        uint256 _nonce,
+        string memory nonce,
         uint256 payAt,
         uint256 gasPrice
     ) external onlyCrank {
@@ -149,7 +147,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            _nonce,
+            nonce,
             payAt
         );
 
@@ -184,7 +182,7 @@ contract ScheduledPaymentModule is Module {
         Fee calldata fee,
         uint256 maxGasPrice,
         address gasToken,
-        uint256 _nonce,
+        string memory nonce,
         uint256 payAt,
         uint256 gasPrice
     ) external returns (uint256) {
@@ -203,7 +201,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            _nonce,
+            nonce,
             payAt
         );
 
@@ -238,7 +236,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        uint256 _nonce,
+        string memory nonce,
         uint256 recursDayOfMonth,
         uint256 until,
         uint256 gasPrice
@@ -252,7 +250,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            _nonce,
+            nonce,
             recursDayOfMonth,
             until
         );
@@ -291,7 +289,7 @@ contract ScheduledPaymentModule is Module {
         Fee calldata fee,
         uint256 maxGasPrice,
         address gasToken,
-        uint256 _nonce,
+        string memory nonce,
         uint256 recursDayOfMonth,
         uint256 until,
         uint256 gasPrice
@@ -311,7 +309,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            _nonce,
+            nonce,
             recursDayOfMonth,
             until
         );
@@ -362,7 +360,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        uint256 _nonce,
+        string memory nonce,
         uint256 payAt
     ) public pure returns (bytes32) {
         return
@@ -376,7 +374,7 @@ contract ScheduledPaymentModule is Module {
                     executionGas,
                     maxGasPrice,
                     gasToken,
-                    _nonce,
+                    nonce,
                     payAt
                 )
             );
@@ -391,7 +389,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        uint256 _nonce,
+        string memory nonce,
         uint256 recursDayOfMonth,
         uint256 until
     ) public pure returns (bytes32) {
@@ -406,7 +404,7 @@ contract ScheduledPaymentModule is Module {
                     executionGas,
                     maxGasPrice,
                     gasToken,
-                    _nonce,
+                    nonce,
                     recursDayOfMonth,
                     until
                 )

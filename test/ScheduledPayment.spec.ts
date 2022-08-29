@@ -21,6 +21,7 @@ describe("ScheduledPaymentModule", async () => {
   const maxGasPrice = "10000000000";
   const payAt = new Date().getTime() + 86400;
   const DECIMAL_BASE = BigNumber.from("1000000000000000000");
+  const nonce = "uniqueNonce";
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
@@ -180,7 +181,7 @@ describe("ScheduledPaymentModule", async () => {
     it("throws if caller not avatar", async () => {
       const { scheduledPaymentModule, token, gasToken } = await setupTests();
       const spHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -189,7 +190,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        await scheduledPaymentModule.nonce(),
+        nonce,
         payAt
       );
       await expect(
@@ -200,9 +201,8 @@ describe("ScheduledPaymentModule", async () => {
     it("should emit event and add the spHash list", async () => {
       const { tx, avatar, scheduledPaymentModule, token, gasToken } =
         await setupTests();
-      const nonce = await scheduledPaymentModule.nonce();
       const spHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -211,7 +211,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        await scheduledPaymentModule.nonce(),
+        nonce,
         payAt
       );
       const schedulePayment =
@@ -233,7 +233,7 @@ describe("ScheduledPaymentModule", async () => {
         )
       )
         .to.emit(scheduledPaymentModule, "PaymentScheduled")
-        .withArgs(nonce, spHash);
+        .withArgs(spHash);
       assert.equal((await scheduledPaymentModule.getSpHashes())[0], spHash);
     });
   });
@@ -254,9 +254,8 @@ describe("ScheduledPaymentModule", async () => {
       token = setupData.token;
       gasToken = setupData.token;
 
-      const nonce = await scheduledPaymentModule.nonce();
       spHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -296,7 +295,7 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if hash unknown", async () => {
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -363,7 +362,6 @@ describe("ScheduledPaymentModule", async () => {
       config: Contract,
       exchange: Contract,
       spHash: any,
-      nonce: number,
       payAt: number,
       executionGas: number;
 
@@ -381,12 +379,11 @@ describe("ScheduledPaymentModule", async () => {
       await token.mint(avatar.address, mintAmount);
       await gasToken.mint(avatar.address, mintAmount);
 
-      nonce = await scheduledPaymentModule.nonce();
       payAt = Math.floor(Date.now() / 1000) + 86400; //now + 1 day
 
       try {
         await scheduledPaymentModule[
-          "estimateExecutionGas(address,uint256,address,((uint256),(uint256)),uint256,address,uint256,uint256,uint256)"
+          "estimateExecutionGas(address,uint256,address,((uint256),(uint256)),uint256,address,string,uint256,uint256)"
         ](
           token.address,
           transferAmount,
@@ -407,7 +404,7 @@ describe("ScheduledPaymentModule", async () => {
       }
 
       spHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -444,7 +441,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user2)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -462,7 +459,7 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if hash unknown", async () => {
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -479,7 +476,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -500,7 +497,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -519,9 +516,8 @@ describe("ScheduledPaymentModule", async () => {
     it("throws if payment execution failed", async () => {
       await network.provider.send("evm_increaseTime", [payAt + 60]);
       const exceedAmount = "1000000000000000000000"; //1000 eth
-      const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         exceedAmount,
@@ -530,7 +526,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        newNonce,
+        nonce,
         payAt
       );
       const schedulePayment =
@@ -556,7 +552,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
           ](
             token.address,
             exceedAmount,
@@ -565,7 +561,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            newNonce,
+            nonce,
             payAt,
             maxGasPrice
           )
@@ -575,9 +571,8 @@ describe("ScheduledPaymentModule", async () => {
     it("throws if gas deduction failed", async () => {
       await network.provider.send("evm_increaseTime", [payAt + 60]);
       const exceedGasAmount = "1000000000000000000000"; //1000 eth
-      const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -586,7 +581,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         exceedGasAmount,
         gasToken.address,
-        newNonce,
+        nonce,
         payAt
       );
       const schedulePayment =
@@ -612,7 +607,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -621,7 +616,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             exceedGasAmount,
             gasToken.address,
-            newNonce,
+            nonce,
             payAt,
             exceedGasAmount
           )
@@ -631,9 +626,8 @@ describe("ScheduledPaymentModule", async () => {
     it("throws if execution gas too low", async () => {
       await network.provider.send("evm_increaseTime", [payAt + 60]);
       const lowExecutionGas = "2500";
-      const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
         token.address,
         transferAmount,
@@ -642,7 +636,7 @@ describe("ScheduledPaymentModule", async () => {
         lowExecutionGas,
         maxGasPrice,
         gasToken.address,
-        newNonce,
+        nonce,
         payAt
       );
       const schedulePayment =
@@ -668,7 +662,7 @@ describe("ScheduledPaymentModule", async () => {
         await scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -677,7 +671,7 @@ describe("ScheduledPaymentModule", async () => {
             lowExecutionGas,
             maxGasPrice,
             gasToken.address,
-            newNonce,
+            nonce,
             payAt,
             maxGasPrice
           );
@@ -696,7 +690,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -757,9 +751,8 @@ describe("ScheduledPaymentModule", async () => {
 
     it("should revert estimation gas", async () => {
       try {
-        const nonce = await scheduledPaymentModule.nonce();
         await scheduledPaymentModule[
-          "estimateExecutionGas(address,uint256,address,((uint256),(uint256)),uint256,address,uint256,uint256,uint256)"
+          "estimateExecutionGas(address,uint256,address,((uint256),(uint256)),uint256,address,string,uint256,uint256)"
         ](
           token.address,
           transferAmount,
@@ -796,7 +789,6 @@ describe("ScheduledPaymentModule", async () => {
       config: Contract,
       exchange: Contract,
       spHash: any,
-      nonce: number,
       recursDayOfMonth: number,
       until: number,
       executionGas: number;
@@ -815,13 +807,12 @@ describe("ScheduledPaymentModule", async () => {
       await token.mint(avatar.address, mintAmount);
       await gasToken.mint(avatar.address, mintAmount);
 
-      nonce = await scheduledPaymentModule.nonce();
       recursDayOfMonth = 25;
       until = moment().add(3, "months").set("date", 28).unix(); //until the 28th of the following three months
 
       try {
         await scheduledPaymentModule[
-          "estimateExecutionGas(address,uint256,address,((uint256),(uint256)),uint256,address,uint256,uint256,uint256,uint256)"
+          "estimateExecutionGas(address,uint256,address,((uint256),(uint256)),uint256,address,string,uint256,uint256,uint256)"
         ](
           token.address,
           transferAmount,
@@ -843,7 +834,7 @@ describe("ScheduledPaymentModule", async () => {
       }
 
       spHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
       ](
         token.address,
         transferAmount,
@@ -881,7 +872,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user2)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -900,7 +891,7 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if hash unknown", async () => {
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
       ](
         token.address,
         transferAmount,
@@ -918,7 +909,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -944,7 +935,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -970,7 +961,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -996,7 +987,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -1019,7 +1010,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -1042,9 +1033,8 @@ describe("ScheduledPaymentModule", async () => {
         blockTimestamp.unix(),
       ]);
       const exceedAmount = "1000000000000000000000"; //1000 eth
-      const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
       ](
         token.address,
         exceedAmount,
@@ -1053,7 +1043,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        newNonce,
+        nonce,
         recursDayOfMonth,
         until
       );
@@ -1080,7 +1070,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             exceedAmount,
@@ -1089,7 +1079,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            newNonce,
+            nonce,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1103,9 +1093,8 @@ describe("ScheduledPaymentModule", async () => {
         blockTimestamp.unix(),
       ]);
       const exceedGasAmount = "1000000000000000000000"; //1000 eth
-      const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
       ](
         token.address,
         transferAmount,
@@ -1114,7 +1103,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         exceedGasAmount,
         gasToken.address,
-        newNonce,
+        nonce,
         recursDayOfMonth,
         until
       );
@@ -1141,7 +1130,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -1150,7 +1139,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             exceedGasAmount,
             gasToken.address,
-            newNonce,
+            nonce,
             recursDayOfMonth,
             until,
             exceedGasAmount
@@ -1164,9 +1153,8 @@ describe("ScheduledPaymentModule", async () => {
         blockTimestamp.unix(),
       ]);
       const lowExecutionGas = "2500";
-      const newNonce = await scheduledPaymentModule.nonce();
       const newSPHash = await scheduledPaymentModule[
-        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256)"
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
       ](
         token.address,
         transferAmount,
@@ -1175,7 +1163,7 @@ describe("ScheduledPaymentModule", async () => {
         lowExecutionGas,
         maxGasPrice,
         gasToken.address,
-        newNonce,
+        nonce,
         recursDayOfMonth,
         until
       );
@@ -1202,7 +1190,7 @@ describe("ScheduledPaymentModule", async () => {
         await scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -1211,7 +1199,7 @@ describe("ScheduledPaymentModule", async () => {
             lowExecutionGas,
             maxGasPrice,
             gasToken.address,
-            newNonce,
+            nonce,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1234,7 +1222,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -1288,7 +1276,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,
@@ -1332,7 +1320,7 @@ describe("ScheduledPaymentModule", async () => {
         scheduledPaymentModule
           .connect(user1)
           [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,uint256,uint256,uint256,uint256)"
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256,uint256)"
           ](
             token.address,
             transferAmount,

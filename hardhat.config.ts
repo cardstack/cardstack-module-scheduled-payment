@@ -57,6 +57,10 @@ export default {
       ...sharedNetworkConfig,
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
     },
+    kovan: {
+      ...sharedNetworkConfig,
+      url: `https://kovan.infura.io/v3/${INFURA_KEY}`,
+    },
     xdai: {
       ...sharedNetworkConfig,
       url: "https://rpc.gnosischain.com",
