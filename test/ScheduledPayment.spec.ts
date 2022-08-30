@@ -21,7 +21,7 @@ describe("ScheduledPaymentModule", async () => {
   const maxGasPrice = "10000000000";
   const payAt = new Date().getTime() + 86400;
   const DECIMAL_BASE = BigNumber.from("1000000000000000000");
-  const nonce = "uniqueNonce";
+  const salt = "uniquesalt";
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
@@ -190,7 +190,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         payAt
       );
       await expect(
@@ -211,7 +211,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         payAt
       );
       const schedulePayment =
@@ -264,7 +264,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         payAt
       );
       const schedulePayment =
@@ -391,7 +391,7 @@ describe("ScheduledPaymentModule", async () => {
           fee,
           maxGasPrice,
           gasToken.address,
-          nonce,
+          salt,
           payAt,
           maxGasPrice
         );
@@ -413,7 +413,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         payAt
       );
       const schedulePayment =
@@ -450,7 +450,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             payAt,
             maxGasPrice
           )
@@ -506,7 +506,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             payAt,
             maxGasPrice
           )
@@ -526,7 +526,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         payAt
       );
       const schedulePayment =
@@ -561,7 +561,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             payAt,
             maxGasPrice
           )
@@ -581,7 +581,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         exceedGasAmount,
         gasToken.address,
-        nonce,
+        salt,
         payAt
       );
       const schedulePayment =
@@ -616,7 +616,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             exceedGasAmount,
             gasToken.address,
-            nonce,
+            salt,
             payAt,
             exceedGasAmount
           )
@@ -636,7 +636,7 @@ describe("ScheduledPaymentModule", async () => {
         lowExecutionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         payAt
       );
       const schedulePayment =
@@ -671,7 +671,7 @@ describe("ScheduledPaymentModule", async () => {
             lowExecutionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             payAt,
             maxGasPrice
           );
@@ -699,7 +699,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             payAt,
             maxGasPrice
           )
@@ -760,7 +760,7 @@ describe("ScheduledPaymentModule", async () => {
           fee,
           maxGasPrice,
           gasToken.address,
-          nonce,
+          salt,
           payAt,
           maxGasPrice
         );
@@ -820,7 +820,7 @@ describe("ScheduledPaymentModule", async () => {
           fee,
           maxGasPrice,
           gasToken.address,
-          nonce,
+          salt,
           recursDayOfMonth,
           until,
           maxGasPrice
@@ -843,7 +843,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         recursDayOfMonth,
         until
       );
@@ -881,7 +881,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -944,7 +944,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -970,7 +970,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -996,7 +996,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1019,7 +1019,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1043,7 +1043,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         recursDayOfMonth,
         until
       );
@@ -1079,7 +1079,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1103,7 +1103,7 @@ describe("ScheduledPaymentModule", async () => {
         executionGas,
         exceedGasAmount,
         gasToken.address,
-        nonce,
+        salt,
         recursDayOfMonth,
         until
       );
@@ -1139,7 +1139,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             exceedGasAmount,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             exceedGasAmount
@@ -1163,7 +1163,7 @@ describe("ScheduledPaymentModule", async () => {
         lowExecutionGas,
         maxGasPrice,
         gasToken.address,
-        nonce,
+        salt,
         recursDayOfMonth,
         until
       );
@@ -1199,7 +1199,7 @@ describe("ScheduledPaymentModule", async () => {
             lowExecutionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1231,7 +1231,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1285,7 +1285,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice
@@ -1329,7 +1329,7 @@ describe("ScheduledPaymentModule", async () => {
             executionGas,
             maxGasPrice,
             gasToken.address,
-            nonce,
+            salt,
             recursDayOfMonth,
             until,
             maxGasPrice

@@ -134,7 +134,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        string memory nonce,
+        string memory salt,
         uint256 payAt,
         uint256 gasPrice
     ) external onlyCrank {
@@ -147,7 +147,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            nonce,
+            salt,
             payAt
         );
 
@@ -182,7 +182,7 @@ contract ScheduledPaymentModule is Module {
         Fee calldata fee,
         uint256 maxGasPrice,
         address gasToken,
-        string memory nonce,
+        string memory salt,
         uint256 payAt,
         uint256 gasPrice
     ) external returns (uint256) {
@@ -201,7 +201,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            nonce,
+            salt,
             payAt
         );
 
@@ -236,7 +236,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        string memory nonce,
+        string memory salt,
         uint256 recursDayOfMonth,
         uint256 until,
         uint256 gasPrice
@@ -250,7 +250,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            nonce,
+            salt,
             recursDayOfMonth,
             until
         );
@@ -289,7 +289,7 @@ contract ScheduledPaymentModule is Module {
         Fee calldata fee,
         uint256 maxGasPrice,
         address gasToken,
-        string memory nonce,
+        string memory salt,
         uint256 recursDayOfMonth,
         uint256 until,
         uint256 gasPrice
@@ -309,7 +309,7 @@ contract ScheduledPaymentModule is Module {
             executionGas,
             maxGasPrice,
             gasToken,
-            nonce,
+            salt,
             recursDayOfMonth,
             until
         );
@@ -360,7 +360,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        string memory nonce,
+        string memory salt,
         uint256 payAt
     ) public pure returns (bytes32) {
         return
@@ -374,7 +374,7 @@ contract ScheduledPaymentModule is Module {
                     executionGas,
                     maxGasPrice,
                     gasToken,
-                    nonce,
+                    salt,
                     payAt
                 )
             );
@@ -389,7 +389,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         uint256 maxGasPrice,
         address gasToken,
-        string memory nonce,
+        string memory salt,
         uint256 recursDayOfMonth,
         uint256 until
     ) public pure returns (bytes32) {
@@ -404,7 +404,7 @@ contract ScheduledPaymentModule is Module {
                     executionGas,
                     maxGasPrice,
                     gasToken,
-                    nonce,
+                    salt,
                     recursDayOfMonth,
                     until
                 )
