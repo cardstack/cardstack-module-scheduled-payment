@@ -9,7 +9,12 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "./utils/OracleLibrary.sol";
 
 contract Exchange is IExchange, OwnableUpgradeable {
-    event ExchangeSetup(address factory, uint24 fee, address usdToken, uint32 secondsAgo);
+    event ExchangeSetup(
+        address factory,
+        uint24 fee,
+        address usdToken,
+        uint32 secondsAgo
+    );
 
     address public factory;
     uint24 public fee;

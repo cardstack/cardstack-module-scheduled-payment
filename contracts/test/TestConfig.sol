@@ -6,10 +6,16 @@ import "../interfaces/IConfig.sol";
 contract TestConfig is IConfig {
     address public crankAddress;
     address public feeReceiver;
+    uint256 public validForDays;
 
-    constructor(address _crankAddress, address _feeReceiver) {
+    constructor(
+        address _crankAddress,
+        address _feeReceiver,
+        uint256 _validForDays
+    ) {
         crankAddress = _crankAddress;
         feeReceiver = _feeReceiver;
+        validForDays = _validForDays;
     }
 
     function getCrankAddress() external view override returns (address) {
@@ -18,5 +24,9 @@ contract TestConfig is IConfig {
 
     function getFeeReceiver() external view override returns (address) {
         return feeReceiver;
+    }
+
+    function getValidForDays() external view override returns (uint256) {
+        return validForDays;
     }
 }

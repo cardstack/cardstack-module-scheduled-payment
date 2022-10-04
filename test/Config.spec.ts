@@ -8,6 +8,7 @@ describe("Config", async () => {
   const [user1, user2, user3] = waffle.provider.getWallets();
   const crankAddress = user2.address;
   const feeReceiver = user3.address;
+  const validForDays = 259200; //3 days
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
@@ -24,19 +25,20 @@ describe("Config", async () => {
     it("throws if not called by the owner", async () => {
       const { config } = await setupTests();
       await expect(
-        config.connect(user2).setUp(crankAddress, feeReceiver)
+        config.connect(user2).setUp(crankAddress, feeReceiver, validForDays)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should set crankAddress and feeReceiver",async () => {
       const { config } = await setupTests();
       await expect(
-        config.setUp(crankAddress, feeReceiver)
+        config.setUp(crankAddress, feeReceiver, validForDays)
       ).to.emit(config, "ConfigSetup")
       .withArgs(crankAddress, feeReceiver);
       
       expect(await config.getCrankAddress()).to.be.eq(crankAddress);
       expect(await config.getFeeReceiver()).to.be.eq(feeReceiver);
+      expect(await config.getValidForDays()).to.be.eq(validForDays);
     })
   });
 });

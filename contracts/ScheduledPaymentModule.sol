@@ -154,8 +154,10 @@ contract ScheduledPaymentModule is Module {
         if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
         // 1 minute is buffer to protect against miners gaming block time
         // The recommended time for POW consensus finality is 1 minute
-        if (block.timestamp < payAt.add(1 minutes))
-            revert InvalidPeriod(spHash);
+        if (
+            block.timestamp < payAt.add(1 minutes) ||
+            block.timestamp > payAt.add(IConfig(config).getValidForDays())
+        ) revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
         if (
             !_executeOneTimePayment(
@@ -219,10 +221,10 @@ contract ScheduledPaymentModule is Module {
             )
         );
 
-        // 500 required checks cost
+        // 3500 required checks cost
         // 9500 remove value from set cost
         // 500 other cost
-        uint256 requiredGas = startGas - gasleft() + 9500 + 500 + 500;
+        uint256 requiredGas = startGas - gasleft() + 9500 + 3500 + 500;
         // Return gas estimation result via error message
         revert GasEstimation(requiredGas);
     }
@@ -255,12 +257,8 @@ contract ScheduledPaymentModule is Module {
             until
         );
         if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
-        if (
-            BokkyPooBahsDateTimeLibrary.getDay(block.timestamp) <
-            recursDayOfMonth ||
-            block.timestamp.sub(lastPaidAt[spHash]) < 28 days || //recursDayOfMonth value range 1-28
-            block.timestamp > until
-        ) revert InvalidPeriod(spHash);
+        if (!isValidRecurringDay(recursDayOfMonth, until, lastPaidAt[spHash]))
+            revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
 
         if (
@@ -279,6 +277,29 @@ contract ScheduledPaymentModule is Module {
         ) revert PaymentExecutionFailed(spHash);
         if (startGas - gasleft() > executionGas)
             revert OutOfGas(spHash, startGas - gasleft());
+    }
+
+    function isValidRecurringDay(
+        uint256 recursDayOfMonth,
+        uint256 until,
+        uint256 _lastPaidAt
+    ) public view returns (bool) {
+        (uint256 year, uint256 month,) = BokkyPooBahsDateTimeLibrary
+            ._daysToDate(
+                block.timestamp / BokkyPooBahsDateTimeLibrary.SECONDS_PER_DAY
+            );
+        uint256 recursDate = BokkyPooBahsDateTimeLibrary.timestampFromDate(
+            year,
+            month,
+            recursDayOfMonth
+        );
+
+        return
+            block.timestamp.sub(_lastPaidAt) >= 28 days && //recursDayOfMonth value range 1-28
+            block.timestamp >= recursDate &&
+            block.timestamp <=
+            recursDate.add(IConfig(config).getValidForDays()) &&
+            block.timestamp <= until;
     }
 
     // Estimate scheduled recurring payment execution
@@ -330,18 +351,18 @@ contract ScheduledPaymentModule is Module {
             )
         );
 
-        // 500 required checks cost
+        // 10500 required checks cost
         // 9000 convert timestamp to day
         // 9500 remove value from set cost
         // 1500 delete from map cost
-        // 2000 other cost
+        // 5000 other cost
         uint256 requiredGas = startGas -
             gasleft() +
             9000 +
             9500 +
             1500 +
-            500 +
-            2000;
+            10500 +
+            5000;
         // Return gas estimation result via error message
         revert GasEstimation(requiredGas);
     }
