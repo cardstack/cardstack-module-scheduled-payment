@@ -61,6 +61,10 @@ export default {
       ...sharedNetworkConfig,
       url: `https://kovan.infura.io/v3/${INFURA_KEY}`,
     },
+    goerli: {
+      ...sharedNetworkConfig,
+      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
+    },
     xdai: {
       ...sharedNetworkConfig,
       url: "https://rpc.gnosischain.com",
@@ -72,6 +76,10 @@ export default {
     matic: {
       ...sharedNetworkConfig,
       url: "https://rpc-mainnet.maticvigil.com",
+    },
+    mumbai: {
+      ...sharedNetworkConfig,
+      url: `https://matic-mumbai.chainstacklabs.com`,
     },
   },
   namedAccounts: {
