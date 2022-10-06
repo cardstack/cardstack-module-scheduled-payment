@@ -1,5 +1,3 @@
-import assert from "assert";
-
 import { expect } from "chai";
 import hre, { deployments, waffle } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
@@ -29,16 +27,15 @@ describe("Config", async () => {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should set crankAddress and feeReceiver",async () => {
+    it("should set crankAddress and feeReceiver", async () => {
       const { config } = await setupTests();
-      await expect(
-        config.setUp(crankAddress, feeReceiver, validForDays)
-      ).to.emit(config, "ConfigSetup")
-      .withArgs(crankAddress, feeReceiver);
-      
+      await expect(config.setUp(crankAddress, feeReceiver, validForDays))
+        .to.emit(config, "ConfigSetup")
+        .withArgs(crankAddress, feeReceiver);
+
       expect(await config.getCrankAddress()).to.be.eq(crankAddress);
       expect(await config.getFeeReceiver()).to.be.eq(feeReceiver);
       expect(await config.getValidForDays()).to.be.eq(validForDays);
-    })
+    });
   });
 });

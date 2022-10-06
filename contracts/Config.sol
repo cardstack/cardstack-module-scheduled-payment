@@ -5,7 +5,6 @@ import "./interfaces/IConfig.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract Config is IConfig, OwnableUpgradeable {
-
     event ConfigSetup(address crankAddress, address feeReceiver);
 
     address private crankAddress;

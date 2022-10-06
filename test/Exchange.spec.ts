@@ -36,11 +36,11 @@ describe("Exchange", async () => {
       tickCumulatives 60 seconds ago = 80067;
       tickCumulatives 0 second ago = tickCumulatives 60 seconds ago + ( 80067 * 60 ) = 4884087;
       */
-      await pool.setTickCumulatives(
-        ["80067", "4884087"]
+      await pool.setTickCumulatives(["80067", "4884087"]);
+      const price = Number(
+        (await exchange.exchangeRateOf(token1.address)).value
       );
-      const price = Number((await exchange.exchangeRateOf(token1.address)).value);
-      expect(Math.round(price / (10**18))).to.be.eq(3000);
+      expect(Math.round(price / 10 ** 18)).to.be.eq(3000);
     });
 
     it("should return usd rate greater than 3000", async () => {
@@ -55,11 +55,11 @@ describe("Exchange", async () => {
       tickCumulatives 30 seconds ago = tickCumulatives 60 seconds ago + ( 82944 * 30 ) = 2568387;
       tickCumulatives 0 second ago = tickCumulatives 30 seconds ago  + ( 85176 * 30 ) = 4970397;
       */
-      await pool.setTickCumulatives(
-        ["80067", "5123667"]
+      await pool.setTickCumulatives(["80067", "5123667"]);
+      const price = Number(
+        (await exchange.exchangeRateOf(token1.address)).value
       );
-      const price = Number((await exchange.exchangeRateOf(token1.address)).value);
-      expect(Math.round(price / (10**18))).to.be.gt(3000);
+      expect(Math.round(price / 10 ** 18)).to.be.gt(3000);
     });
 
     it("should return usd rate lower than 3000", async () => {
@@ -74,11 +74,11 @@ describe("Exchange", async () => {
       tickCumulatives 30 seconds ago = tickCumulatives 60 seconds ago + ( 76012 * 30 ) = 2360427;
       tickCumulatives 0 second ago = tickCumulatives 30 seconds ago  + ( 69081 * 30 ) = 4432857;
       */
-      await pool.setTickCumulatives(
-        ["80067", "4432857"]
+      await pool.setTickCumulatives(["80067", "4432857"]);
+      const price = Number(
+        (await exchange.exchangeRateOf(token1.address)).value
       );
-      const price = Number((await exchange.exchangeRateOf(token1.address)).value);
-      expect(Math.round(price / (10**18))).to.be.lt(3000);
+      expect(Math.round(price / 10 ** 18)).to.be.lt(3000);
     });
   });
 });

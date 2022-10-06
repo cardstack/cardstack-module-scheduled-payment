@@ -9,6 +9,7 @@ import "./interfaces/IConfig.sol";
 import "./interfaces/IExchange.sol";
 import "./utils/BokkyPooBahsDateTimeLibrary.sol";
 import "./utils/Decimal.sol";
+import "hardhat/console.sol";
 
 contract ScheduledPaymentModule is Module {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
@@ -257,10 +258,9 @@ contract ScheduledPaymentModule is Module {
             until
         );
         if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
-        if (!isValidRecurringDay(recursDayOfMonth, until, lastPaidAt[spHash]))
-            revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
 
+        uint256 recursDate = getRecursDate(spHash, recursDayOfMonth, until);
         if (
             !_executeRecurringPayment(
                 spHash,
@@ -271,7 +271,7 @@ contract ScheduledPaymentModule is Module {
                 executionGas,
                 gasToken,
                 gasPrice,
-                recursDayOfMonth,
+                recursDate,
                 until
             )
         ) revert PaymentExecutionFailed(spHash);
@@ -279,27 +279,43 @@ contract ScheduledPaymentModule is Module {
             revert OutOfGas(spHash, startGas - gasleft());
     }
 
-    function isValidRecurringDay(
+    function getRecursDate(
+        bytes32 spHash,
         uint256 recursDayOfMonth,
-        uint256 until,
-        uint256 _lastPaidAt
-    ) public view returns (bool) {
-        (uint256 year, uint256 month,) = BokkyPooBahsDateTimeLibrary
-            ._daysToDate(
-                block.timestamp / BokkyPooBahsDateTimeLibrary.SECONDS_PER_DAY
+        uint256 until
+    ) public view returns (uint256) {
+        uint256 validForDays = IConfig(config).getValidForDays();
+        uint256 _prevDate = block.timestamp.sub(validForDays);
+        uint256 recursDate;
+        {
+            (
+                uint256 _prevYear,
+                uint256 _prevMonth,
+                uint256 _prevDay
+            ) = BokkyPooBahsDateTimeLibrary.timestampToDate(_prevDate);
+            (
+                uint256 year,
+                uint256 month,
+                uint256 day
+            ) = BokkyPooBahsDateTimeLibrary.timestampToDate(block.timestamp);
+            recursDate = BokkyPooBahsDateTimeLibrary.timestampFromDate(
+                recursDayOfMonth >= _prevDay && recursDayOfMonth >= day
+                    ? _prevYear
+                    : year,
+                recursDayOfMonth >= _prevDay && recursDayOfMonth >= day
+                    ? _prevMonth
+                    : month,
+                recursDayOfMonth
             );
-        uint256 recursDate = BokkyPooBahsDateTimeLibrary.timestampFromDate(
-            year,
-            month,
-            recursDayOfMonth
-        );
+        }
 
-        return
-            block.timestamp.sub(_lastPaidAt) >= 28 days && //recursDayOfMonth value range 1-28
-            block.timestamp >= recursDate &&
-            block.timestamp <=
-            recursDate.add(IConfig(config).getValidForDays()) &&
-            block.timestamp <= until;
+        if (
+            block.timestamp <= lastPaidAt[spHash].add(validForDays) ||
+            block.timestamp < recursDate ||
+            _prevDate > recursDate ||
+            block.timestamp > until.add(validForDays)
+        ) revert InvalidPeriod(spHash);
+        return recursDate;
     }
 
     // Estimate scheduled recurring payment execution
@@ -346,7 +362,7 @@ contract ScheduledPaymentModule is Module {
                 executionGas,
                 gasToken,
                 gasPrice,
-                recursDayOfMonth,
+                block.timestamp,
                 until
             )
         );
@@ -469,7 +485,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         address gasToken,
         uint256 gasPrice,
-        uint256 recursDayOfMonth,
+        uint256 recursDate,
         uint256 until
     ) private returns (bool status) {
         status = executePayment(
@@ -485,9 +501,9 @@ contract ScheduledPaymentModule is Module {
         lastPaidAt[spHash] = block.timestamp;
         emit ScheduledPaymentExecuted(spHash);
 
-        uint256 dayInSeconds = 86400;
-        uint256 nextExecution = recursDayOfMonth.mul(dayInSeconds).add(
-            lastPaidAt[spHash]
+        uint256 nextExecution = BokkyPooBahsDateTimeLibrary.addMonths(
+            recursDate,
+            1
         );
         if (nextExecution > until) {
             spHashes.remove(spHash);
