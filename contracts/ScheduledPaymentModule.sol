@@ -156,7 +156,7 @@ contract ScheduledPaymentModule is Module {
         // The recommended time for POW consensus finality is 1 minute
         if (
             block.timestamp < payAt.add(1 minutes) ||
-            block.timestamp > payAt.add(IConfig(config).getValidForDays())
+            block.timestamp > payAt.add(IConfig(config).getValidForSeconds())
         ) revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
         if (
@@ -283,14 +283,14 @@ contract ScheduledPaymentModule is Module {
         uint256 recursDayOfMonth,
         uint256 until
     ) public view returns (uint256) {
-        uint256 validForDays = IConfig(config).getValidForDays();
-        uint256 _prevDate = block.timestamp.sub(validForDays);
+        uint256 validForSeconds = IConfig(config).getValidForSeconds();
+        uint256 _prevDate = block.timestamp.sub(validForSeconds);
         uint256 recursDate = _getRecursDate(recursDayOfMonth, _prevDate);
         if (
-            block.timestamp <= lastPaidAt[spHash].add(validForDays) ||
+            block.timestamp <= lastPaidAt[spHash].add(validForSeconds) ||
             block.timestamp < recursDate ||
             _prevDate > recursDate ||
-            block.timestamp > until.add(validForDays)
+            block.timestamp > until.add(validForSeconds)
         ) revert InvalidPeriod(spHash);
         return recursDate;
     }

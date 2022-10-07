@@ -22,7 +22,7 @@ describe("ScheduledPaymentModule", async () => {
   const payAt = new Date().getTime() + 86400;
   const DECIMAL_BASE = BigNumber.from("1000000000000000000");
   const salt = "uniquesalt";
-  const validForDays = 259200; //3 days
+  const validForDays = 3;
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
@@ -520,7 +520,7 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if execution after valid for days", async () => {
       await network.provider.send("evm_setNextBlockTimestamp", [
-        payAt + validForDays + 60,
+        payAt + (validForDays  * 86400) + 60,
       ]);
       await expect(
         scheduledPaymentModule
@@ -1012,7 +1012,7 @@ describe("ScheduledPaymentModule", async () => {
       for (const recurringDay of recurringDays) {
         await initialization(recurringDay);
         await network.provider.send("evm_setNextBlockTimestamp", [
-          validExecutionTimestamp.add(validForDays, "seconds").unix() + 60, //60 seconds after recurring valid days
+          validExecutionTimestamp.add(validForDays, "days").unix() + 60, //60 seconds after recurring valid days
         ]);
         await expect(
           scheduledPaymentModule
@@ -1065,7 +1065,7 @@ describe("ScheduledPaymentModule", async () => {
           .withArgs(spHash);
 
         await network.provider.send("evm_setNextBlockTimestamp", [
-          validExecutionTimestamp.add(validForDays, "seconds").unix(), //execution in the same month in the last valid days
+          validExecutionTimestamp.add(validForDays, "days").unix(), //execution in the same month in the last valid days
         ]);
         await expect(
           scheduledPaymentModule
@@ -1093,7 +1093,7 @@ describe("ScheduledPaymentModule", async () => {
       for (const recurringDay of recurringDays) {
         await initialization(recurringDay);
         const invalidExecutionTimestamp =
-          moment.unix(until).add(validForDays, "seconds").unix() + 60;
+          moment.unix(until).add(validForDays, "days").unix() + 60;
         await network.provider.send("evm_setNextBlockTimestamp", [
           invalidExecutionTimestamp,
         ]);
@@ -1309,7 +1309,7 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("should emit event and remove the hash if the execution in the valid days", async () => {
-      const validDays = Array(validForDays / 86400)
+      const validDays = Array(validForDays)
         .fill(0)
         .map((e, i) => i);
       for (const recurringDay of recurringDays) {
@@ -1319,7 +1319,7 @@ describe("ScheduledPaymentModule", async () => {
           const feeReceiver = await config.getFeeReceiver();
           const untiLastValidDays = moment
             .unix(until)
-            .add(validForDays, "seconds")
+            .add(validForDays, "days")
             .unix();
           let month = 1;
           let _validExecutionTimestamp = moment

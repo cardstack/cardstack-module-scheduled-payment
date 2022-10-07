@@ -6,7 +6,7 @@ describe("Config", async () => {
   const [user1, user2, user3] = waffle.provider.getWallets();
   const crankAddress = user2.address;
   const feeReceiver = user3.address;
-  const validForDays = 259200; //3 days
+  const validForDays = 3;
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();

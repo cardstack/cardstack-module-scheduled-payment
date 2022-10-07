@@ -6,5 +6,7 @@ interface IConfig {
 
     function getFeeReceiver() external view returns (address);
 
-    function getValidForDays() external view returns (uint256);
+    function getValidForDays() external view returns (uint8);
+
+    function getValidForSeconds() external view returns (uint256);
 }
