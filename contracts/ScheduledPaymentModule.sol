@@ -9,7 +9,6 @@ import "./interfaces/IConfig.sol";
 import "./interfaces/IExchange.sol";
 import "./utils/BokkyPooBahsDateTimeLibrary.sol";
 import "./utils/Decimal.sol";
-import "hardhat/console.sol";
 
 contract ScheduledPaymentModule is Module {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
@@ -286,29 +285,7 @@ contract ScheduledPaymentModule is Module {
     ) public view returns (uint256) {
         uint256 validForDays = IConfig(config).getValidForDays();
         uint256 _prevDate = block.timestamp.sub(validForDays);
-        uint256 recursDate;
-        {
-            (
-                uint256 _prevYear,
-                uint256 _prevMonth,
-                uint256 _prevDay
-            ) = BokkyPooBahsDateTimeLibrary.timestampToDate(_prevDate);
-            (
-                uint256 year,
-                uint256 month,
-                uint256 day
-            ) = BokkyPooBahsDateTimeLibrary.timestampToDate(block.timestamp);
-            recursDate = BokkyPooBahsDateTimeLibrary.timestampFromDate(
-                recursDayOfMonth >= _prevDay && recursDayOfMonth >= day
-                    ? _prevYear
-                    : year,
-                recursDayOfMonth >= _prevDay && recursDayOfMonth >= day
-                    ? _prevMonth
-                    : month,
-                recursDayOfMonth
-            );
-        }
-
+        uint256 recursDate = _getRecursDate(recursDayOfMonth, _prevDate);
         if (
             block.timestamp <= lastPaidAt[spHash].add(validForDays) ||
             block.timestamp < recursDate ||
@@ -316,6 +293,41 @@ contract ScheduledPaymentModule is Module {
             block.timestamp > until.add(validForDays)
         ) revert InvalidPeriod(spHash);
         return recursDate;
+    }
+
+    function _getRecursDate(uint256 recursDayOfMonth, uint256 _prevDate)
+        private
+        view
+        returns (uint256)
+    {
+        (
+            uint256 _prevYear,
+            uint256 _prevMonth,
+            uint256 _prevDay
+        ) = BokkyPooBahsDateTimeLibrary.timestampToDate(_prevDate);
+        (uint256 year, uint256 month, uint256 day) = BokkyPooBahsDateTimeLibrary
+            .timestampToDate(block.timestamp);
+        uint256 recursYear = recursDayOfMonth >= _prevDay &&
+            recursDayOfMonth >= day
+            ? _prevYear
+            : year;
+        uint256 recursMonth = recursDayOfMonth >= _prevDay &&
+            recursDayOfMonth >= day
+            ? _prevMonth
+            : month;
+        uint256 daysInMonth = BokkyPooBahsDateTimeLibrary._getDaysInMonth(
+            recursYear,
+            recursMonth
+        );
+        uint256 recursDay = recursDayOfMonth > daysInMonth
+            ? daysInMonth
+            : recursDayOfMonth;
+        return
+            BokkyPooBahsDateTimeLibrary.timestampFromDate(
+                recursYear,
+                recursMonth,
+                recursDay
+            );
     }
 
     // Estimate scheduled recurring payment execution

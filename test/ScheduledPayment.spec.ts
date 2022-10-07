@@ -810,7 +810,7 @@ describe("ScheduledPaymentModule", async () => {
   });
 
   describe("executeScheduledPayment() recurring payment", async () => {
-    const recurringDays = [1, 2, 3, 15, 26, 27, 28]; //Cover different cases on early, middle and end of month
+    const recurringDays = [1, 2, 3, 15, 26, 27, 28, 29, 30, 31]; //Cover different cases on early, middle and end of month
     let tx: any,
       avatar: Contract,
       scheduledPaymentModule: Contract,
@@ -819,12 +819,11 @@ describe("ScheduledPaymentModule", async () => {
       config: Contract,
       exchange: Contract,
       spHash: any,
-      recursDayOfMonth: number,
       until: number,
       executionGas: number,
       validExecutionTimestamp: moment.Moment;
 
-    async function initialization(_recursDayOfMonth: number) {
+    async function initialization(_recurringDay: number) {
       const setupData = await setupTests();
       tx = setupData.tx;
       avatar = setupData.avatar;
@@ -838,18 +837,26 @@ describe("ScheduledPaymentModule", async () => {
       await token.mint(avatar.address, mintAmount);
       await gasToken.mint(avatar.address, mintAmount);
 
-      recursDayOfMonth = _recursDayOfMonth;
       validExecutionTimestamp = moment()
         .add(1, "months")
-        .set("date", recursDayOfMonth)
         .set("hours", 0)
         .set("minutes", 0)
         .set("seconds", 0)
         .utc(true);
-      until = moment
-        .unix(validExecutionTimestamp.unix())
-        .add(5, "months")
-        .unix(); //until the 28th of the following five months at 00:00:00Z
+      const daysInMonth = validExecutionTimestamp.daysInMonth();
+      validExecutionTimestamp.set(
+        "date",
+        _recurringDay > daysInMonth ? daysInMonth : _recurringDay
+      );
+
+      until = moment()
+        .set("date", _recurringDay)
+        .add(6, "months")
+        .set("hours", 0)
+        .set("minutes", 0)
+        .set("seconds", 0)
+        .utc(true)
+        .unix(); //until the 28th of the following six months at 00:00:00Z
 
       try {
         await scheduledPaymentModule[
@@ -862,7 +869,7 @@ describe("ScheduledPaymentModule", async () => {
           maxGasPrice,
           gasToken.address,
           salt,
-          recursDayOfMonth,
+          _recurringDay,
           until,
           maxGasPrice
         );
@@ -885,7 +892,7 @@ describe("ScheduledPaymentModule", async () => {
         maxGasPrice,
         gasToken.address,
         salt,
-        recursDayOfMonth,
+        _recurringDay,
         until
       );
       const schedulePayment =
@@ -925,7 +932,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -947,7 +954,7 @@ describe("ScheduledPaymentModule", async () => {
           maxGasPrice,
           gasToken.address,
           1000,
-          recursDayOfMonth,
+          recurringDay,
           until
         );
 
@@ -965,7 +972,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               1000,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -993,7 +1000,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -1021,7 +1028,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -1049,7 +1056,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -1074,7 +1081,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -1104,7 +1111,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -1130,7 +1137,7 @@ describe("ScheduledPaymentModule", async () => {
           maxGasPrice,
           gasToken.address,
           salt,
-          recursDayOfMonth,
+          recurringDay,
           until
         );
         const schedulePayment =
@@ -1166,7 +1173,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             )
@@ -1192,7 +1199,7 @@ describe("ScheduledPaymentModule", async () => {
           exceedGasAmount,
           gasToken.address,
           salt,
-          recursDayOfMonth,
+          recurringDay,
           until
         );
         const schedulePayment =
@@ -1228,7 +1235,7 @@ describe("ScheduledPaymentModule", async () => {
               exceedGasAmount,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               exceedGasAmount
             )
@@ -1254,7 +1261,7 @@ describe("ScheduledPaymentModule", async () => {
           maxGasPrice,
           gasToken.address,
           salt,
-          recursDayOfMonth,
+          recurringDay,
           until
         );
         const schedulePayment =
@@ -1290,7 +1297,7 @@ describe("ScheduledPaymentModule", async () => {
               maxGasPrice,
               gasToken.address,
               salt,
-              recursDayOfMonth,
+              recurringDay,
               until,
               maxGasPrice
             );
@@ -1337,7 +1344,7 @@ describe("ScheduledPaymentModule", async () => {
                   maxGasPrice,
                   gasToken.address,
                   salt,
-                  recursDayOfMonth,
+                  recurringDay,
                   until,
                   maxGasPrice
                 )
@@ -1347,7 +1354,13 @@ describe("ScheduledPaymentModule", async () => {
             month++;
             _validExecutionTimestamp = _validExecutionTimestamp
               .subtract(validDay, "days")
-              .add(1, "months")
+              .add(1, "months");
+            const daysInMonth = _validExecutionTimestamp.daysInMonth();
+            _validExecutionTimestamp
+              .set(
+                "date",
+                recurringDay > daysInMonth ? daysInMonth : recurringDay
+              )
               .add(validDay, "days");
           } while (untiLastValidDays >= _validExecutionTimestamp.unix());
           const totalMonth = BigNumber.from(month - 1);
