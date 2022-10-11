@@ -5,7 +5,6 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat deploy --network",
     "coverage": "hardhat coverage",
     "lint": "yarn lint:sol && yarn lint:ts",
     "lint:sol": "solhint 'contracts/**/*.sol'",
@@ -23,6 +22,7 @@
   },
   "homepage": "https://github.com/cardstack/cardstack-module-scheduled-payments#readme",
   "dependencies": {
+    "@cardstack/upgrade-manager": "../upgrade-manager/",
     "env": "^0.0.2",
     "hardhat": "^2.10.1",
     "yargs": "^17.5.1"
@@ -53,7 +53,6 @@
     "eslint-plugin-prettier": "^4.2.1",
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.4.7",
-    "hardhat-deploy": "^0.11.12",
     "hardhat-gas-reporter": "^1.0.8",
     "moment": "^2.29.4",
     "prettier": "^2.7.1",
