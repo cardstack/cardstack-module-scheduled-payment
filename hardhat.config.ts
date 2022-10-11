@@ -1,8 +1,7 @@
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
-import "@openzeppelin/hardhat-upgrades";
+import "@cardstack/upgrade-manager";
 import "solidity-coverage";
-import "hardhat-deploy";
 import dotenv from "dotenv";
 import type { HttpNetworkUserConfig } from "hardhat/types";
 import yargs from "yargs";
@@ -47,6 +46,9 @@ export default {
   },
   solidity: {
     compilers: [{ version: "0.8.9" }],
+  },
+  upgradeManager: {
+    contracts: ["Config", "Exchange"],
   },
   networks: {
     mainnet: {
