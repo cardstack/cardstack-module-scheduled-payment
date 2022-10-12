@@ -9,7 +9,7 @@ contract Config is IConfig, OwnableUpgradeable {
 
     address private crankAddress;
     address private feeReceiver;
-    uint8 private validForDays;
+    uint256 private validForSeconds;
 
     function initialize(address _owner) public initializer {
         __Ownable_init();
@@ -23,7 +23,7 @@ contract Config is IConfig, OwnableUpgradeable {
     ) external onlyOwner {
         crankAddress = _crankAddress;
         feeReceiver = _feeReceiver;
-        validForDays = _validForDays;
+        validForSeconds = _validForDays * 86400;
 
         emit ConfigSetup(crankAddress, feeReceiver);
     }
@@ -37,10 +37,10 @@ contract Config is IConfig, OwnableUpgradeable {
     }
 
     function getValidForDays() external view returns (uint8) {
-        return validForDays;
+        return uint8(validForSeconds / 86400);
     }
 
     function getValidForSeconds() external view returns (uint256) {
-        return validForDays * 86400;
+        return validForSeconds;
     }
 }
