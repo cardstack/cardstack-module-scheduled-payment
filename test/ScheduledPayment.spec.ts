@@ -713,7 +713,7 @@ describe("ScheduledPaymentModule", async () => {
     it("should emit event because of scheduled payment executed", async () => {
       await network.provider.send("evm_setNextBlockTimestamp", [payAt + 60]);
       const payeeBalance = await token.balanceOf(user3.address);
-      const feeReceiver = await config.getFeeReceiver();
+      const feeReceiver = await config.feeReceiver();
 
       await expect(
         scheduledPaymentModule
@@ -1316,7 +1316,7 @@ describe("ScheduledPaymentModule", async () => {
         for (const validDay of validDays) {
           await initialization(recurringDay);
           const payeeBalance = await token.balanceOf(user3.address);
-          const feeReceiver = await config.getFeeReceiver();
+          const feeReceiver = await config.feeReceiver();
           const untiLastValidDays = moment
             .unix(until)
             .add(validForDays, "days")

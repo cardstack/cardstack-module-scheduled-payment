@@ -7,9 +7,9 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 contract Config is IConfig, OwnableUpgradeable {
     event ConfigSetup(address crankAddress, address feeReceiver);
 
-    address private crankAddress;
-    address private feeReceiver;
-    uint256 private validForSeconds;
+    address public crankAddress;
+    address public feeReceiver;
+    uint256 public validForSeconds;
 
     function initialize(address _owner) public initializer {
         __Ownable_init();
@@ -28,19 +28,7 @@ contract Config is IConfig, OwnableUpgradeable {
         emit ConfigSetup(crankAddress, feeReceiver);
     }
 
-    function getCrankAddress() external view returns (address) {
-        return crankAddress;
-    }
-
-    function getFeeReceiver() external view returns (address) {
-        return feeReceiver;
-    }
-
-    function getValidForDays() external view returns (uint8) {
+    function validForDays() external view returns (uint8) {
         return uint8(validForSeconds / 86400);
-    }
-
-    function getValidForSeconds() external view returns (uint256) {
-        return validForSeconds;
     }
 }

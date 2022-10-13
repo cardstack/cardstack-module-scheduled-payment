@@ -56,7 +56,7 @@ contract ScheduledPaymentModule is Module {
 
     modifier onlyCrank() {
         require(
-            msg.sender == IConfig(config).getCrankAddress(),
+            msg.sender == IConfig(config).crankAddress(),
             "caller is not a crank"
         );
         _;
@@ -156,7 +156,7 @@ contract ScheduledPaymentModule is Module {
         // The recommended time for POW consensus finality is 1 minute
         if (
             block.timestamp < payAt.add(1 minutes) ||
-            block.timestamp > payAt.add(IConfig(config).getValidForSeconds())
+            block.timestamp > payAt.add(IConfig(config).validForSeconds())
         ) revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
         if (
@@ -283,7 +283,7 @@ contract ScheduledPaymentModule is Module {
         uint256 recursDayOfMonth,
         uint256 until
     ) public view returns (uint256) {
-        uint256 validForSeconds = IConfig(config).getValidForSeconds();
+        uint256 validForSeconds = IConfig(config).validForSeconds();
         uint256 _prevDate = block.timestamp.sub(validForSeconds);
         uint256 recursDate = _getRecursDate(recursDayOfMonth, _prevDate);
         if (
@@ -543,7 +543,7 @@ contract ScheduledPaymentModule is Module {
         // execTransactionFromModule for percentage fee
         bytes memory feeTxData = abi.encodeWithSelector(
             0xa9059cbb,
-            IConfig(config).getFeeReceiver(),
+            IConfig(config).feeReceiver(),
             Decimal.mul(amount, fee.percentage)
         );
         bool feeTxStatus = exec(token, 0, feeTxData, Enum.Operation.Call);
@@ -551,7 +551,7 @@ contract ScheduledPaymentModule is Module {
         // execTransactionFromModule for fixed fee and gas reimbursement
         bytes memory gasTxData = abi.encodeWithSelector(
             0xa9059cbb,
-            IConfig(config).getFeeReceiver(),
+            IConfig(config).feeReceiver(),
             executionGas.mul(gasPrice).add(calculateFixedFee(gasToken, fee))
         );
         bool gasTxStatus = exec(gasToken, 0, gasTxData, Enum.Operation.Call);

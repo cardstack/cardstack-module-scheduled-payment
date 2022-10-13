@@ -33,9 +33,9 @@ describe("Config", async () => {
         .to.emit(config, "ConfigSetup")
         .withArgs(crankAddress, feeReceiver);
 
-      expect(await config.getCrankAddress()).to.be.eq(crankAddress);
-      expect(await config.getFeeReceiver()).to.be.eq(feeReceiver);
-      expect(await config.getValidForDays()).to.be.eq(validForDays);
+      expect(await config.crankAddress()).to.be.eq(crankAddress);
+      expect(await config.feeReceiver()).to.be.eq(feeReceiver);
+      expect(await config.validForDays()).to.be.eq(validForDays);
     });
   });
 });

@@ -2,11 +2,11 @@
 pragma solidity ^0.8.9;
 
 interface IConfig {
-    function getCrankAddress() external view returns (address);
+    function crankAddress() external view returns (address);
 
-    function getFeeReceiver() external view returns (address);
+    function feeReceiver() external view returns (address);
 
-    function getValidForDays() external view returns (uint8);
+    function validForDays() external view returns (uint8);
 
-    function getValidForSeconds() external view returns (uint256);
+    function validForSeconds() external view returns (uint256);
 }
