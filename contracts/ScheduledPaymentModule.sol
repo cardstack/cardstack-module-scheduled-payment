@@ -56,7 +56,7 @@ contract ScheduledPaymentModule is Module {
 
     modifier onlyCrank() {
         require(
-            msg.sender == IConfig(config).getCrankAddress(),
+            msg.sender == IConfig(config).crankAddress(),
             "caller is not a crank"
         );
         _;
@@ -154,8 +154,10 @@ contract ScheduledPaymentModule is Module {
         if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
         // 1 minute is buffer to protect against miners gaming block time
         // The recommended time for POW consensus finality is 1 minute
-        if (block.timestamp < payAt.add(1 minutes))
-            revert InvalidPeriod(spHash);
+        if (
+            block.timestamp < payAt.add(1 minutes) ||
+            block.timestamp > payAt.add(IConfig(config).validForSeconds())
+        ) revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
         if (
             !_executeOneTimePayment(
@@ -219,10 +221,10 @@ contract ScheduledPaymentModule is Module {
             )
         );
 
-        // 500 required checks cost
+        // 3500 required checks cost
         // 9500 remove value from set cost
         // 500 other cost
-        uint256 requiredGas = startGas - gasleft() + 9500 + 500 + 500;
+        uint256 requiredGas = startGas - gasleft() + 9500 + 3500 + 500;
         // Return gas estimation result via error message
         revert GasEstimation(requiredGas);
     }
@@ -255,14 +257,9 @@ contract ScheduledPaymentModule is Module {
             until
         );
         if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
-        if (
-            BokkyPooBahsDateTimeLibrary.getDay(block.timestamp) <
-            recursDayOfMonth ||
-            block.timestamp.sub(lastPaidAt[spHash]) < 28 days || //recursDayOfMonth value range 1-28
-            block.timestamp > until
-        ) revert InvalidPeriod(spHash);
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
 
+        uint256 recursDate = getRecursDate(spHash, recursDayOfMonth, until);
         if (
             !_executeRecurringPayment(
                 spHash,
@@ -273,12 +270,64 @@ contract ScheduledPaymentModule is Module {
                 executionGas,
                 gasToken,
                 gasPrice,
-                recursDayOfMonth,
+                recursDate,
                 until
             )
         ) revert PaymentExecutionFailed(spHash);
         if (startGas - gasleft() > executionGas)
             revert OutOfGas(spHash, startGas - gasleft());
+    }
+
+    function getRecursDate(
+        bytes32 spHash,
+        uint256 recursDayOfMonth,
+        uint256 until
+    ) public view returns (uint256) {
+        uint256 validForSeconds = IConfig(config).validForSeconds();
+        uint256 _prevDate = block.timestamp.sub(validForSeconds);
+        uint256 recursDate = _getRecursDate(recursDayOfMonth, _prevDate);
+        if (
+            block.timestamp <= lastPaidAt[spHash].add(validForSeconds) ||
+            block.timestamp < recursDate ||
+            _prevDate > recursDate ||
+            block.timestamp > until.add(validForSeconds)
+        ) revert InvalidPeriod(spHash);
+        return recursDate;
+    }
+
+    function _getRecursDate(uint256 recursDayOfMonth, uint256 _prevDate)
+        private
+        view
+        returns (uint256)
+    {
+        (
+            uint256 _prevYear,
+            uint256 _prevMonth,
+            uint256 _prevDay
+        ) = BokkyPooBahsDateTimeLibrary.timestampToDate(_prevDate);
+        (uint256 year, uint256 month, uint256 day) = BokkyPooBahsDateTimeLibrary
+            .timestampToDate(block.timestamp);
+        uint256 recursYear = recursDayOfMonth >= _prevDay &&
+            recursDayOfMonth >= day
+            ? _prevYear
+            : year;
+        uint256 recursMonth = recursDayOfMonth >= _prevDay &&
+            recursDayOfMonth >= day
+            ? _prevMonth
+            : month;
+        uint256 daysInMonth = BokkyPooBahsDateTimeLibrary._getDaysInMonth(
+            recursYear,
+            recursMonth
+        );
+        uint256 recursDay = recursDayOfMonth > daysInMonth
+            ? daysInMonth
+            : recursDayOfMonth;
+        return
+            BokkyPooBahsDateTimeLibrary.timestampFromDate(
+                recursYear,
+                recursMonth,
+                recursDay
+            );
     }
 
     // Estimate scheduled recurring payment execution
@@ -325,23 +374,23 @@ contract ScheduledPaymentModule is Module {
                 executionGas,
                 gasToken,
                 gasPrice,
-                recursDayOfMonth,
+                block.timestamp,
                 until
             )
         );
 
-        // 500 required checks cost
+        // 10500 required checks cost
         // 9000 convert timestamp to day
         // 9500 remove value from set cost
         // 1500 delete from map cost
-        // 2000 other cost
+        // 5000 other cost
         uint256 requiredGas = startGas -
             gasleft() +
             9000 +
             9500 +
             1500 +
-            500 +
-            2000;
+            10500 +
+            5000;
         // Return gas estimation result via error message
         revert GasEstimation(requiredGas);
     }
@@ -448,7 +497,7 @@ contract ScheduledPaymentModule is Module {
         uint256 executionGas,
         address gasToken,
         uint256 gasPrice,
-        uint256 recursDayOfMonth,
+        uint256 recursDate,
         uint256 until
     ) private returns (bool status) {
         status = executePayment(
@@ -464,9 +513,9 @@ contract ScheduledPaymentModule is Module {
         lastPaidAt[spHash] = block.timestamp;
         emit ScheduledPaymentExecuted(spHash);
 
-        uint256 dayInSeconds = 86400;
-        uint256 nextExecution = recursDayOfMonth.mul(dayInSeconds).add(
-            lastPaidAt[spHash]
+        uint256 nextExecution = BokkyPooBahsDateTimeLibrary.addMonths(
+            recursDate,
+            1
         );
         if (nextExecution > until) {
             spHashes.remove(spHash);
@@ -494,7 +543,7 @@ contract ScheduledPaymentModule is Module {
         // execTransactionFromModule for percentage fee
         bytes memory feeTxData = abi.encodeWithSelector(
             0xa9059cbb,
-            IConfig(config).getFeeReceiver(),
+            IConfig(config).feeReceiver(),
             Decimal.mul(amount, fee.percentage)
         );
         bool feeTxStatus = exec(token, 0, feeTxData, Enum.Operation.Call);
@@ -502,7 +551,7 @@ contract ScheduledPaymentModule is Module {
         // execTransactionFromModule for fixed fee and gas reimbursement
         bytes memory gasTxData = abi.encodeWithSelector(
             0xa9059cbb,
-            IConfig(config).getFeeReceiver(),
+            IConfig(config).feeReceiver(),
             executionGas.mul(gasPrice).add(calculateFixedFee(gasToken, fee))
         );
         bool gasTxStatus = exec(gasToken, 0, gasTxData, Enum.Operation.Call);
