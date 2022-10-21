@@ -1,19 +1,9 @@
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
-import "@cardstack/upgrade-manager";
 import "solidity-coverage";
 import dotenv from "dotenv";
-import type { HttpNetworkUserConfig } from "hardhat/types";
-import yargs from "yargs";
-
-const argv = yargs
-  .option("network", {
-    type: "string",
-    default: "hardhat",
-  })
-  .help(false)
-  .version(false)
-  .parseSync();
+import { HttpNetworkUserConfig, HardhatUserConfig } from "hardhat/types";
+import "@cardstack/upgrade-manager";
 
 // Load environment variables.
 dotenv.config();
@@ -31,24 +21,25 @@ if (PK) {
   };
 }
 
-if (["rinkeby", "mainnet"].includes(argv.network) && INFURA_KEY === undefined) {
-  throw new Error(
-    `Could not find Infura key in env, unable to connect to network ${argv.network}`
-  );
-}
-
-export default {
+const config: HardhatUserConfig = {
   paths: {
     artifacts: "artifacts",
     cache: "cache",
-    deploy: "src/deploy",
     sources: "contracts",
   },
   solidity: {
     compilers: [{ version: "0.8.9" }],
   },
   upgradeManager: {
-    contracts: ["Config", "Exchange"],
+    contracts: [
+      "Config",
+      "Exchange",
+      {
+        id: "ScheduledPaymentModule",
+        abstract: true,
+        deterministic: true,
+      },
+    ],
   },
   networks: {
     mainnet: {
@@ -84,9 +75,6 @@ export default {
       url: `https://matic-mumbai.chainstacklabs.com`,
     },
   },
-  namedAccounts: {
-    deployer: 0,
-  },
   mocha: {
     timeout: 2000000,
   },
@@ -94,3 +82,5 @@ export default {
     apiKey: ETHERSCAN_API_KEY,
   },
 };
+
+export default config;
