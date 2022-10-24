@@ -1,6 +1,7 @@
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "solidity-coverage";
+import { AddressOne } from "@gnosis.pm/safe-contracts";
 import dotenv from "dotenv";
 import { HttpNetworkUserConfig, HardhatUserConfig } from "hardhat/types";
 import "@cardstack/upgrade-manager";
@@ -38,6 +39,13 @@ const config: HardhatUserConfig = {
         id: "ScheduledPaymentModule",
         abstract: true,
         deterministic: true,
+        constructorArgs: [
+          AddressOne,
+          AddressOne,
+          AddressOne,
+          AddressOne,
+          AddressOne,
+        ],
       },
     ],
   },
