@@ -100,8 +100,10 @@
     "@babel/helper-validator-identifier" "^7.19.1"
     to-fast-properties "^2.0.0"
 
-"@cardstack/upgrade-manager@file:.yalc/@cardstack/upgrade-manager":
-  version "0.0.1"
+"@cardstack/upgrade-manager@1.0.0-beta":
+  version "1.0.0-beta"
+  resolved "https://registry.yarnpkg.com/@cardstack/upgrade-manager/-/upgrade-manager-1.0.0-beta.tgz#5c4360d0321b4413dec9d491b2f4acb39db01cba"
+  integrity sha512-Uzpvc1O7qXhwSJcms6R1gC3/dWEBvNvlFkDxeQ58/qxTfHndrkiBlSfp9lWhwdFwzmdYqxrJ/xQNLgmxXiW/7A==
   dependencies:
     "@nomicfoundation/hardhat-network-helpers" "^1.0.0"
     "@openzeppelin/contracts-upgradeable" "^4.8.0-rc.1"
@@ -7947,7 +7949,7 @@ web3-net@1.8.0:
     web3-core-method "1.8.0"
     web3-utils "1.8.0"
 
-"web3-provider-engine@github:habdelra/web3-provider-engine":
+web3-provider-engine@habdelra/web3-provider-engine:
   version "16.0.1"
   resolved "https://codeload.github.com/habdelra/web3-provider-engine/tar.gz/d9e5d9545c1af75124ca027bce5aaa84a3c4fda4"
   dependencies:

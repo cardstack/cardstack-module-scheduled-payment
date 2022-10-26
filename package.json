@@ -27,7 +27,7 @@
     "yargs": "^17.5.1"
   },
   "devDependencies": {
-    "@cardstack/upgrade-manager": "file:.yalc/@cardstack/upgrade-manager",
+    "@cardstack/upgrade-manager": "1.0.0-beta",
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
     "@gnosis.pm/safe-contracts": "1.3.0",
