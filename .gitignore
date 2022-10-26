@@ -23,5 +23,5 @@ typechain-types
 #Hardhat files
 cache
 artifacts
-
-.openzeppelin
+.openzeppelin/unknown-31337.json
+config/upgrade-manager-deploy-data-hardhat.json
