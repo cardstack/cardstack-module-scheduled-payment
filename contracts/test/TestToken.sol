@@ -7,11 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract TestToken is ERC20, Ownable {
     uint8 private d;
 
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        uint8 _decimals
-    ) ERC20(name_, symbol_) {
+    constructor(string memory name_, string memory symbol_, uint8 _decimals)
+        ERC20(name_, symbol_)
+    {
         d = _decimals;
     }
 

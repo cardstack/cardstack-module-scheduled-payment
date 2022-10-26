@@ -53,11 +53,11 @@ library BokkyPooBahsDateTimeLibrary {
     //      - 3 * ((year + 4900 + (month - 14) / 12) / 100) / 4
     //      - offset
     // ------------------------------------------------------------------------
-    function _daysFromDate(
-        uint256 year,
-        uint256 month,
-        uint256 day
-    ) internal pure returns (uint256 _days) {
+    function _daysFromDate(uint256 year, uint256 month, uint256 day)
+        internal
+        pure
+        returns (uint256 _days)
+    {
         require(year >= 1970);
         int256 _year = int256(year);
         int256 _month = int256(month);
@@ -96,11 +96,7 @@ library BokkyPooBahsDateTimeLibrary {
     function _daysToDate(uint256 _days)
         internal
         pure
-        returns (
-            uint256 year,
-            uint256 month,
-            uint256 day
-        )
+        returns (uint256 year, uint256 month, uint256 day)
     {
         int256 __days = int256(_days);
 
@@ -120,11 +116,11 @@ library BokkyPooBahsDateTimeLibrary {
         day = uint256(_day);
     }
 
-    function timestampFromDate(
-        uint256 year,
-        uint256 month,
-        uint256 day
-    ) internal pure returns (uint256 timestamp) {
+    function timestampFromDate(uint256 year, uint256 month, uint256 day)
+        internal
+        pure
+        returns (uint256 timestamp)
+    {
         timestamp = _daysFromDate(year, month, day) * SECONDS_PER_DAY;
     }
 
@@ -149,11 +145,7 @@ library BokkyPooBahsDateTimeLibrary {
     function timestampToDate(uint256 timestamp)
         internal
         pure
-        returns (
-            uint256 year,
-            uint256 month,
-            uint256 day
-        )
+        returns (uint256 year, uint256 month, uint256 day)
     {
         (year, month, day) = _daysToDate(timestamp / SECONDS_PER_DAY);
     }
@@ -178,11 +170,11 @@ library BokkyPooBahsDateTimeLibrary {
         second = secs % SECONDS_PER_MINUTE;
     }
 
-    function isValidDate(
-        uint256 year,
-        uint256 month,
-        uint256 day
-    ) internal pure returns (bool valid) {
+    function isValidDate(uint256 year, uint256 month, uint256 day)
+        internal
+        pure
+        returns (bool valid)
+    {
         if (year >= 1970 && month > 0 && month <= 12) {
             uint256 daysInMonth = _getDaysInMonth(year, month);
             if (day > 0 && day <= daysInMonth) {

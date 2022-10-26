@@ -30,7 +30,7 @@ describe("Config", async () => {
     it("throws if not called by the owner", async () => {
       await expect(
         config
-          .connect(crankAddress)
+          .connect(await hre.ethers.getSigner(crankAddress))
           .setUp(crankAddress, feeReceiver, validForDays)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });

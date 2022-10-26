@@ -20,11 +20,11 @@ library Math {
     /*
      * Return target * (numerator / denominator).
      */
-    function getPartial(
-        uint256 target,
-        uint256 numerator,
-        uint256 denominator
-    ) internal pure returns (uint256) {
+    function getPartial(uint256 target, uint256 numerator, uint256 denominator)
+        internal
+        pure
+        returns (uint256)
+    {
         return target.mul(numerator).div(denominator);
     }
 

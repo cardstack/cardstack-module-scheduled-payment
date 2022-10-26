@@ -10,9 +10,9 @@
     "strict": true,
     "target": "es2020",
     "typeRoots": ["node_modules/@types", "typings"],
-    "exclude": ["dist", "node_modules"],
     "rootDirs": ["./src", "./test"],
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true
 
   },
   "exclude": ["dist", "node_modules"],

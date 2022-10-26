@@ -8,11 +8,7 @@ contract TestUniswapFactory {
         pool = _pool;
     }
 
-    function getPool(
-        address,
-        address,
-        uint24
-    ) external view returns (address) {
+    function getPool(address, address, uint24) external view returns (address) {
         return pool;
     }
 }

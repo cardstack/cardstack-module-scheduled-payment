@@ -1,9 +1,9 @@
 import { AddressOne } from "@gnosis.pm/safe-contracts";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { AbiCoder, BytesLike } from "ethers/lib/utils";
+import { AbiCoder } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 import { ModuleProxyFactory, ScheduledPaymentModule } from "../typechain-types";
 
@@ -64,14 +64,22 @@ describe("Module works with factory", () => {
     ]);
     const receipt = await factory
       .deployModule(masterCopy.address, initParams, saltNonce)
-      .then((tx: any) => tx.wait());
+      .then((tx) => tx.wait());
+
+    if (!receipt || !receipt.events) {
+      throw new Error("Could not get receipt");
+    }
+
+    const event = receipt.events.find(
+      ({ event }) => event === "ModuleProxyCreation"
+    );
+
+    if (!event || !event.args) {
+      throw new Error("Could not find event in logs");
+    }
 
     // retrieve new address from event
-    const {
-      args: [newProxyAddress],
-    } = receipt.events.find(
-      ({ event }: { event: string }) => event === "ModuleProxyCreation"
-    );
+    const newProxyAddress = event.args[0];
 
     const newProxy = await hre.ethers.getContractAt(
       "ScheduledPaymentModule",
