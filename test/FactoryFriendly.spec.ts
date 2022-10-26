@@ -1,8 +1,11 @@
 import { AddressOne } from "@gnosis.pm/safe-contracts";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { AbiCoder } from "ethers/lib/utils";
-import hre, { deployments, ethers } from "hardhat";
+import hre, { ethers } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
+
+import { ModuleProxyFactory, ScheduledPaymentModule } from "../typechain-types";
 
 const saltNonce = "0xfa";
 
@@ -16,8 +19,7 @@ describe("Module works with factory", () => {
     "address",
   ];
 
-  const baseSetup = deployments.createFixture(async () => {
-    await deployments.fixture();
+  async function setupFixture() {
     const Factory = await hre.ethers.getContractFactory("ModuleProxyFactory");
     const ScheduledPaymentModule = await hre.ethers.getContractFactory(
       "ScheduledPaymentModule"
@@ -34,10 +36,15 @@ describe("Module works with factory", () => {
     );
 
     return { factory, masterCopy };
+  }
+
+  let factory: ModuleProxyFactory, masterCopy: ScheduledPaymentModule;
+
+  beforeEach(async function () {
+    ({ factory, masterCopy } = await loadFixture(setupFixture));
   });
 
   it("should throw because master copy is already initialized", async () => {
-    const { masterCopy } = await baseSetup();
     const encodedParams = new AbiCoder().encode(paramsTypes, [
       AddressOne,
       AddressOne,
@@ -52,7 +59,6 @@ describe("Module works with factory", () => {
   });
 
   it("should deploy new protect module proxy", async () => {
-    const { factory, masterCopy } = await baseSetup();
     const [owner] = await ethers.getSigners();
     const paramsValues = [
       owner.address,
@@ -62,21 +68,28 @@ describe("Module works with factory", () => {
       AddressOne,
       AddressOne,
     ];
-    const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
-    const initParams = masterCopy.interface.encodeFunctionData(
-      "setUp",
-      encodedParams
-    );
+    const encodedParams = new AbiCoder().encode(paramsTypes, paramsValues);
+    const initParams = masterCopy.interface.encodeFunctionData("setUp", [
+      encodedParams,
+    ]);
     const receipt = await factory
       .deployModule(masterCopy.address, initParams, saltNonce)
-      .then((tx: any) => tx.wait());
+      .then((tx) => tx.wait());
+
+    if (!receipt || !receipt.events) {
+      throw new Error("Could not get receipt");
+    }
+
+    const event = receipt.events.find(
+      ({ event }) => event === "ModuleProxyCreation"
+    );
+
+    if (!event || !event.args) {
+      throw new Error("Could not find event in logs");
+    }
 
     // retrieve new address from event
-    const {
-      args: [newProxyAddress],
-    } = receipt.events.find(
-      ({ event }: { event: string }) => event === "ModuleProxyCreation"
-    );
+    const newProxyAddress = event.args[0];
 
     const newProxy = await hre.ethers.getContractAt(
       "ScheduledPaymentModule",

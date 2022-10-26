@@ -1,12 +1,13 @@
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import hre, { deployments, waffle } from "hardhat";
+import hre from "hardhat";
+
 import "@nomiclabs/hardhat-ethers";
+import { Exchange, TestToken, TestUniswapPool } from "../typechain-types";
 
 describe("Exchange", async () => {
-  const [user1] = waffle.provider.getWallets();
-
-  const setupTests = deployments.createFixture(async ({ deployments }) => {
-    await deployments.fixture();
+  async function setupFixture() {
+    const [user1] = await hre.ethers.getSigners();
     const Pool = await hre.ethers.getContractFactory("TestUniswapPool");
     const pool = await Pool.deploy();
     const Factory = await hre.ethers.getContractFactory("TestUniswapFactory");
@@ -21,14 +22,17 @@ describe("Exchange", async () => {
     return {
       exchange,
       pool,
-      token0,
       token1,
     };
-  });
+  }
 
   describe("exchangeRateOf()", () => {
+    let exchange: Exchange, pool: TestUniswapPool, token1: TestToken;
+
+    beforeEach(async function () {
+      ({ exchange, pool, token1 } = await loadFixture(setupFixture));
+    });
     it("should return usd rate equal to 3000", async () => {
-      const { exchange, pool, token1 } = await setupTests();
       /*
       Price(k) = 1.0001**Tick(k)
       Tick = 80067, Price = 3000
@@ -44,7 +48,6 @@ describe("Exchange", async () => {
     });
 
     it("should return usd rate greater than 3000", async () => {
-      const { exchange, pool, token1 } = await setupTests();
       /*
       Price(k) = 1.0001**Tick(k)
       Tick = 80067, Price = 3000
@@ -63,7 +66,6 @@ describe("Exchange", async () => {
     });
 
     it("should return usd rate lower than 3000", async () => {
-      const { exchange, pool, token1 } = await setupTests();
       /*
       Price(k) = 1.0001**Tick(k)
       Tick = 80067, Price = 3000
