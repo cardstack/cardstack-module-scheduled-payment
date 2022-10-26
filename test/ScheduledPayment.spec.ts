@@ -2,17 +2,19 @@ import assert from "assert";
 
 import { AddressZero } from "@ethersproject/constants";
 import { AddressOne } from "@gnosis.pm/safe-contracts";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
-import hre, { deployments, waffle, ethers, network } from "hardhat";
+import hre, { ethers, network } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import moment from "moment";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+
+import { TestAvatar } from "../typechain-types";
 
 describe("ScheduledPaymentModule", async () => {
-  const [user1, user2, user3] = waffle.provider.getWallets();
   const abiCoder = new ethers.utils.AbiCoder();
   const transferAmount = "1000000000000";
-  const payee = user3.address;
   const fee = {
     fixedUSD: { value: "25000000000000000000" },
     percentage: { value: "100000000000000000" },
@@ -24,8 +26,11 @@ describe("ScheduledPaymentModule", async () => {
   const salt = "uniquesalt";
   const validForDays = 3;
 
-  const setupTests = deployments.createFixture(async ({ deployments }) => {
-    await deployments.fixture();
+  async function setupFixture() {
+    const [user1, user2, user3] = await ethers.getSigners();
+
+    const payee = user3.address;
+
     const Token = await hre.ethers.getContractFactory("TestToken");
     const token = await Token.deploy("TestToken", "TestToken", 18);
     const gasToken = await Token.deploy("GasToken", "GasToken", 18);
@@ -64,6 +69,7 @@ describe("ScheduledPaymentModule", async () => {
     };
 
     return {
+      user1,
       avatar,
       scheduledPaymentModule,
       tx,
@@ -71,12 +77,18 @@ describe("ScheduledPaymentModule", async () => {
       gasToken,
       config,
       exchange,
+      payee,
     };
+  }
+
+  let avatar: TestAvatar, payee: string, user1: SignerWithAddress;
+
+  beforeEach(async function () {
+    ({ payee, avatar } = await loadFixture(setupFixture));
   });
 
   describe("setUp()", async () => {
     it("throws if module has already been initialized", async () => {
-      const { avatar, scheduledPaymentModule } = await setupTests();
       const initializeParams = abiCoder.encode(
         ["address", "address", "address", "address", "address"],
         [user1.address, avatar.address, avatar.address, AddressOne, AddressOne]
@@ -167,14 +179,12 @@ describe("ScheduledPaymentModule", async () => {
 
   describe("setConfig", async () => {
     it("throws if caller not owner", async () => {
-      const { scheduledPaymentModule } = await setupTests();
       await expect(
         scheduledPaymentModule.connect(user2).setConfig(AddressOne)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should emit event and update config value", async () => {
-      const { scheduledPaymentModule } = await setupTests();
       await expect(scheduledPaymentModule.setConfig(AddressOne))
         .to.emit(scheduledPaymentModule, "ConfigSet")
         .withArgs(AddressOne);
@@ -184,7 +194,6 @@ describe("ScheduledPaymentModule", async () => {
 
   describe("schedulePayment()", async () => {
     it("throws if caller not avatar", async () => {
-      const { scheduledPaymentModule, token, gasToken } = await setupTests();
       const spHash = await scheduledPaymentModule[
         "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
@@ -204,8 +213,6 @@ describe("ScheduledPaymentModule", async () => {
     });
 
     it("should emit event and add the spHash list", async () => {
-      const { tx, avatar, scheduledPaymentModule, token, gasToken } =
-        await setupTests();
       const spHash = await scheduledPaymentModule[
         "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
       ](
@@ -252,12 +259,7 @@ describe("ScheduledPaymentModule", async () => {
       spHash: any;
 
     beforeEach(async () => {
-      const setupData = await setupTests();
-      tx = setupData.tx;
-      avatar = setupData.avatar;
-      scheduledPaymentModule = setupData.scheduledPaymentModule;
-      token = setupData.token;
-      gasToken = setupData.token;
+      const gasToken = token;
 
       spHash = await scheduledPaymentModule[
         "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
@@ -276,19 +278,17 @@ describe("ScheduledPaymentModule", async () => {
         await scheduledPaymentModule.populateTransaction.schedulePayment(
           spHash
         );
-      await expect(
-        avatar.execTransaction(
-          scheduledPaymentModule.address,
-          tx.value,
-          schedulePayment.data,
-          tx.operation,
-          tx.avatarTxGas,
-          tx.baseGas,
-          tx.gasPrice,
-          tx.gasToken,
-          tx.refundReceiver,
-          tx.signatures
-        )
+      await avatar.execTransaction(
+        scheduledPaymentModule.address,
+        tx.value,
+        schedulePayment.data,
+        tx.operation,
+        tx.avatarTxGas,
+        tx.baseGas,
+        tx.gasPrice,
+        tx.gasToken,
+        tx.refundReceiver,
+        tx.signatures
       );
     });
 
@@ -371,7 +371,6 @@ describe("ScheduledPaymentModule", async () => {
       executionGas: number;
 
     beforeEach(async () => {
-      const setupData = await setupTests();
       tx = setupData.tx;
       avatar = setupData.avatar;
       scheduledPaymentModule = setupData.scheduledPaymentModule;
@@ -520,7 +519,7 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if execution after valid for days", async () => {
       await network.provider.send("evm_setNextBlockTimestamp", [
-        payAt + (validForDays  * 86400) + 60,
+        payAt + validForDays * 86400 + 60,
       ]);
       await expect(
         scheduledPaymentModule

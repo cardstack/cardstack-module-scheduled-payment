@@ -1,17 +1,25 @@
 {
   "compilerOptions": {
-      "declaration": true,
-      "esModuleInterop": true,
-      "module": "commonjs",
-      "moduleResolution": "node",
-      "noEmit": true,
-      "resolveJsonModule": true,
-      "skipLibCheck": true,
-      "strict": true,
-      "target": "es2020",
-      "typeRoots": [
-          "node_modules/@types",
-          "typings"
-      ]
-  }
+    "declaration": true,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2020",
+    "typeRoots": ["node_modules/@types", "typings"],
+    "exclude": ["dist", "node_modules"],
+    "rootDirs": ["./src", "./test"],
+    "forceConsistentCasingInFileNames": true
+
+  },
+  "exclude": ["dist", "node_modules"],
+  "include": ["./test", "./src", "./typechain-types"],
+  "files": ["./hardhat.config.ts"]
+
 }
+
+
+
