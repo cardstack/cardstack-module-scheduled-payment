@@ -105,8 +105,9 @@
     "@babel/helper-validator-identifier" "^7.19.1"
     to-fast-properties "^2.0.0"
 
-"@cardstack/upgrade-manager@../upgrade-manager/":
+"@cardstack/upgrade-manager@https://github.com/cardstack/upgrade-manager":
   version "0.0.1"
+  resolved "https://github.com/cardstack/upgrade-manager#8a5575187a4e0953b32f93771a305d8d03e80945"
   dependencies:
     "@nomicfoundation/hardhat-network-helpers" "^1.0.0"
     "@openzeppelin/contracts-upgradeable" "^4.8.0-rc.1"
