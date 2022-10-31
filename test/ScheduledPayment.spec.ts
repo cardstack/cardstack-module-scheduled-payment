@@ -160,7 +160,8 @@ describe("ScheduledPaymentModule", async () => {
           avatar.address,
           avatar.address,
           AddressZero,
-          AddressZero
+          AddressZero,
+          scheduledPaymentModule.address
         );
     });
   });
