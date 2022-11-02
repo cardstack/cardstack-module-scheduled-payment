@@ -20,7 +20,8 @@ contract ScheduledPaymentModule is Module {
         address indexed avatar,
         address target,
         address config,
-        address exchange
+        address exchange,
+        address moduleAddress
     );
     event PaymentScheduled(bytes32 spHash);
     event ScheduledPaymentCancelled(bytes32 spHash);
@@ -107,7 +108,8 @@ contract ScheduledPaymentModule is Module {
             _avatar,
             _target,
             _config,
-            _exchange
+            _exchange,
+            address(this)
         );
     }
 
