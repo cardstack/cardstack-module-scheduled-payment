@@ -45,6 +45,7 @@ describe("ScheduledPaymentModule", async () => {
     const scheduledPaymentModule = await ScheduledPaymentModule.deploy(
       user1.address,
       avatar.address,
+      [user1.address],
       avatar.address,
       config.address,
       exchange.address
@@ -96,6 +97,7 @@ describe("ScheduledPaymentModule", async () => {
         ScheduledPaymentModule.deploy(
           AddressZero,
           avatar.address,
+          [AddressZero],
           avatar.address,
           AddressZero,
           AddressZero
@@ -113,6 +115,7 @@ describe("ScheduledPaymentModule", async () => {
         ScheduledPaymentModule.deploy(
           user1.address,
           AddressZero,
+          [user1.address],
           avatar.address,
           AddressZero,
           AddressZero
@@ -130,6 +133,7 @@ describe("ScheduledPaymentModule", async () => {
         ScheduledPaymentModule.deploy(
           user1.address,
           avatar.address,
+          [user1.address],
           AddressZero,
           AddressZero,
           AddressZero
@@ -146,6 +150,7 @@ describe("ScheduledPaymentModule", async () => {
       const scheduledPaymentModule = await ScheduledPaymentModule.deploy(
         user1.address,
         avatar.address,
+        [user1.address],
         avatar.address,
         AddressZero,
         AddressZero

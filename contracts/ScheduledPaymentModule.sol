@@ -68,6 +68,7 @@ contract ScheduledPaymentModule is Module {
     constructor(
         address _owner,
         address _avatar,
+        address[] memory _avatarOwners,
         address _target,
         address _config,
         address _exchange
@@ -75,6 +76,7 @@ contract ScheduledPaymentModule is Module {
         bytes memory initParams = abi.encode(
             _owner,
             _avatar,
+            _avatarOwners,
             _target,
             _config,
             _exchange
@@ -86,12 +88,13 @@ contract ScheduledPaymentModule is Module {
         (
             address _owner,
             address payable _avatar,
+            address[] memory _avatarOwners,
             address _target,
             address _config,
             address _exchange
         ) = abi.decode(
                 initParams,
-                (address, address, address, address, address)
+                (address, address, address[], address, address, address)
             );
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
@@ -102,18 +105,14 @@ contract ScheduledPaymentModule is Module {
         config = _config;
         exchange = _exchange;
         transferOwnership(_owner);
-        
-        // Don't need to get avatar owners 
-        // when deploying the master copy contract
-        address[] memory avatarOwners;
-        if (_avatar != address(1)) {
-            avatarOwners = GnosisSafe(_avatar).getOwners();
-        }
+
         emit ScheduledPaymentModuleSetup(
             msg.sender,
             _owner,
             _avatar,
-            avatarOwners,
+            _avatarOwners.length > 0
+                ? _avatarOwners
+                : GnosisSafe(_avatar).getOwners(),
             _target,
             _config,
             _exchange,
