@@ -47,7 +47,7 @@ describe("Module works with factory", () => {
     const [owner] = await ethers.getSigners();
     const paramsValues = [
       owner.address,
-      owner.address,
+      AddressOne,
       AddressOne,
       AddressOne,
       AddressOne,

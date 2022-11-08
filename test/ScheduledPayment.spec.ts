@@ -158,6 +158,7 @@ describe("ScheduledPaymentModule", async () => {
           user1.address,
           user1.address,
           avatar.address,
+          [user1.address],
           avatar.address,
           AddressZero,
           AddressZero,
@@ -521,7 +522,7 @@ describe("ScheduledPaymentModule", async () => {
 
     it("throws if execution after valid for days", async () => {
       await network.provider.send("evm_setNextBlockTimestamp", [
-        payAt + (validForDays  * 86400) + 60,
+        payAt + validForDays * 86400 + 60,
       ]);
       await expect(
         scheduledPaymentModule
