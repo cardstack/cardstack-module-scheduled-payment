@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/cardstack/cardstack-module-scheduled-payments#readme",
   "dependencies": {
+    "@gnosis.pm/safe-contracts": "^1.3.0",
     "env": "^0.0.2",
     "hardhat": "^2.10.1",
     "yargs": "^17.5.1"

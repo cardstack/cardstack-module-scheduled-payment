@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -18,6 +19,7 @@ contract ScheduledPaymentModule is Module {
         address indexed initiator,
         address indexed owner,
         address indexed avatar,
+        address[] avatarOwners,
         address target,
         address config,
         address exchange,
@@ -66,6 +68,7 @@ contract ScheduledPaymentModule is Module {
     constructor(
         address _owner,
         address _avatar,
+        address[] memory _avatarOwners,
         address _target,
         address _config,
         address _exchange
@@ -73,6 +76,7 @@ contract ScheduledPaymentModule is Module {
         bytes memory initParams = abi.encode(
             _owner,
             _avatar,
+            _avatarOwners,
             _target,
             _config,
             _exchange
@@ -83,13 +87,14 @@ contract ScheduledPaymentModule is Module {
     function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
-            address _avatar,
+            address payable _avatar,
+            address[] memory _avatarOwners,
             address _target,
             address _config,
             address _exchange
         ) = abi.decode(
                 initParams,
-                (address, address, address, address, address)
+                (address, address, address[], address, address, address)
             );
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
@@ -99,13 +104,15 @@ contract ScheduledPaymentModule is Module {
         target = _target;
         config = _config;
         exchange = _exchange;
-
         transferOwnership(_owner);
 
         emit ScheduledPaymentModuleSetup(
             msg.sender,
             _owner,
             _avatar,
+            _avatarOwners.length > 0
+                ? _avatarOwners
+                : GnosisSafe(_avatar).getOwners(),
             _target,
             _config,
             _exchange,

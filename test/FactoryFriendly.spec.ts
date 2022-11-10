@@ -7,7 +7,14 @@ import "@nomiclabs/hardhat-ethers";
 const saltNonce = "0xfa";
 
 describe("Module works with factory", () => {
-  const paramsTypes = ["address", "address", "address", "address", "address"];
+  const paramsTypes = [
+    "address",
+    "address",
+    "address[]",
+    "address",
+    "address",
+    "address",
+  ];
 
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
@@ -20,6 +27,7 @@ describe("Module works with factory", () => {
     const masterCopy = await ScheduledPaymentModule.deploy(
       AddressOne,
       AddressOne,
+      [AddressOne],
       AddressOne,
       AddressOne,
       AddressOne
@@ -33,6 +41,7 @@ describe("Module works with factory", () => {
     const encodedParams = new AbiCoder().encode(paramsTypes, [
       AddressOne,
       AddressOne,
+      [AddressOne],
       AddressOne,
       AddressOne,
       AddressOne,
@@ -47,7 +56,8 @@ describe("Module works with factory", () => {
     const [owner] = await ethers.getSigners();
     const paramsValues = [
       owner.address,
-      owner.address,
+      AddressOne,
+      [owner.address],
       AddressOne,
       AddressOne,
       AddressOne,

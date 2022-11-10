@@ -7,6 +7,11 @@ import "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 contract TestAvatar is StorageAccessible, GuardManager {
     address public module;
     address public guard;
+    address[] public owners;
+
+    constructor() {
+        owners.push(msg.sender);
+    }
 
     receive() external payable {}
 
@@ -62,5 +67,9 @@ contract TestAvatar is StorageAccessible, GuardManager {
         require(msg.sender == module, "Not authorized");
         if (operation == 1) (success, ) = to.delegatecall(data);
         else (success, ) = to.call{value: value}(data);
+    }
+
+    function getOwners() public view returns (address[] memory) {
+        return owners;
     }
 }
