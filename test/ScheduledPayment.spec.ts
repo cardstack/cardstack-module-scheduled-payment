@@ -1359,12 +1359,15 @@ describe("ScheduledPaymentModule", async () => {
             const feeReceiver = await config.feeReceiver();
             const untiLastValidDays = moment
               .unix(until)
+              .utc(true)
               .add(validForDays, "days")
               .unix();
             let month = 1;
             let _validExecutionTimestamp = moment
               .unix(validExecutionTimestamp.unix())
+              .utc(true)
               .add(validDay, "days");
+
             do {
               await setNextBlockTimestamp(_validExecutionTimestamp.unix());
 
