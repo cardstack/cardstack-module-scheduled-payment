@@ -42,6 +42,7 @@ const config: HardhatUserConfig = {
         constructorArgs: [
           AddressOne,
           AddressOne,
+          [AddressOne],
           AddressOne,
           AddressOne,
           AddressOne,
