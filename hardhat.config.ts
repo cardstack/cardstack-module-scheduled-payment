@@ -77,7 +77,7 @@ const config: HardhatUserConfig = {
     },
     matic: {
       ...sharedNetworkConfig,
-      url: "https://rpc-mainnet.maticvigil.com",
+      url: "https://polygon-rpc.com",
     },
     mumbai: {
       ...sharedNetworkConfig,
