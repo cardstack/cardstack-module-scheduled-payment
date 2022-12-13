@@ -66,6 +66,7 @@ const config: HardhatUserConfig = {
     goerli: {
       ...sharedNetworkConfig,
       url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
+      chainId: 5,
     },
     xdai: {
       ...sharedNetworkConfig,

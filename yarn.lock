@@ -100,11 +100,13 @@
     "@babel/helper-validator-identifier" "^7.19.1"
     to-fast-properties "^2.0.0"
 
-"@cardstack/upgrade-manager@1.0.0-beta":
-  version "1.0.0-beta"
-  resolved "https://registry.yarnpkg.com/@cardstack/upgrade-manager/-/upgrade-manager-1.0.0-beta.tgz#5c4360d0321b4413dec9d491b2f4acb39db01cba"
-  integrity sha512-Uzpvc1O7qXhwSJcms6R1gC3/dWEBvNvlFkDxeQ58/qxTfHndrkiBlSfp9lWhwdFwzmdYqxrJ/xQNLgmxXiW/7A==
+"@cardstack/upgrade-manager@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@cardstack/upgrade-manager/-/upgrade-manager-1.0.0.tgz#03747e78c890307f0d91b66a89176356b7cbc62f"
+  integrity sha512-73h/hiGGd9KkZbIXFS0SJUF65SF750ogTj4ai4gnPRc7JV3buNaJ1J4LcKqM5aPPR0wKsxkpj82Dz+n6J7ADIg==
   dependencies:
+    "@gnosis.pm/safe-contracts" "^1.3.0"
+    "@gnosis.pm/safe-deployments" "^1.0.0"
     "@nomicfoundation/hardhat-network-helpers" "^1.0.0"
     "@openzeppelin/contracts-upgradeable" "^4.8.0-rc.1"
     "@openzeppelin/hardhat-upgrades" "^1.21.0"
@@ -112,6 +114,7 @@
     colors "^1.4.0"
     cpr-promise "^0.2.6"
     enquirer "^2.3.6"
+    evm-chains "^0.2.0"
     fs-extra "^10.1.0"
     lodash "^4.17.21"
     trezor-cli-wallet-provider "^1.0.7"
@@ -510,6 +513,13 @@
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/@gnosis.pm/safe-contracts/-/safe-contracts-1.3.0.tgz#316741a7690d8751a1f701538cfc9ec80866eedc"
   integrity sha512-1p+1HwGvxGUVzVkFjNzglwHrLNA67U/axP0Ct85FzzH8yhGJb4t9jDjPYocVMzLorDoWAfKicGy1akPY9jXRVw==
+
+"@gnosis.pm/safe-deployments@^1.0.0":
+  version "1.17.0"
+  resolved "https://registry.yarnpkg.com/@gnosis.pm/safe-deployments/-/safe-deployments-1.17.0.tgz#52a7b0e75c08b4a829f491b594e2babbdd6606c5"
+  integrity sha512-vfl13IuSMqJZxTPraRcKZqJcaSCDWTt/JXH6VURa8LHMYATOqd96IGbqqOKRPAgSzAyXpA2thOD4YUQ0X8XKyQ==
+  dependencies:
+    semver "^7.3.7"
 
 "@gnosis.pm/zodiac@^1.1.3":
   version "1.1.5"
@@ -3738,6 +3748,11 @@ events@^3.0.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
   integrity sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==
+
+evm-chains@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/evm-chains/-/evm-chains-0.2.0.tgz#401354aa2b474bb9b34e796d328f281e67d07349"
+  integrity sha512-iMpFpmKT9VydfIUpRFoQHNzLdZ3WSNagiq6PABqWDSRwAA9OW+dpKYczkvJ/WSUesGWgcfzYoKRvfusn/9bBYA==
 
 evp_bytestokey@^1.0.0, evp_bytestokey@^1.0.3:
   version "1.0.3"
