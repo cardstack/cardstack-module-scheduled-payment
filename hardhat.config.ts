@@ -80,10 +80,6 @@ const config: HardhatUserConfig = {
       ...sharedNetworkConfig,
       url: "https://polygon-rpc.com",
     },
-    mumbai: {
-      ...sharedNetworkConfig,
-      url: `https://matic-mumbai.chainstacklabs.com`,
-    },
   },
   mocha: {
     timeout: 2000000,
