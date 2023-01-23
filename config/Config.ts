@@ -7,8 +7,13 @@ const configValues = {
     validForDays: 3,
   },
   mainnet: {
-    crankAddress: "CRANK_ADDRESS_HERE",
-    feeReceiver: "FEE_RECEIVER_HERE",
+    crankAddress: "0xA667C141aB169b3BC0476Bc1225BF609f4A7eb38",
+    feeReceiver: "0x3Fc163F9Ca47408EF3915590b0c82509e44b050B",
+    validForDays: 3,
+  },
+  matic: {
+    crankAddress: "0xA667C141aB169b3BC0476Bc1225BF609f4A7eb38",
+    feeReceiver: "0x571D0d89324A7dE8a2f0D994808e191943B6E320",
     validForDays: 3,
   },
 };
