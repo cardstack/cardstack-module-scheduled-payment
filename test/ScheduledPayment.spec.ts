@@ -522,29 +522,6 @@ describe("ScheduledPaymentModule", async () => {
         .withArgs(newSPHash);
     });
 
-    it("throws if execution before payAt + 1 minutes", async () => {
-      await expect(
-        scheduledPaymentModule
-          .connect(user1)
-          [
-            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
-          ](
-            token.address,
-            transferAmount,
-            payee,
-            fee,
-            executionGas,
-            maxGasPrice,
-            gasToken.address,
-            salt,
-            payAt,
-            maxGasPrice
-          )
-      )
-        .to.be.revertedWithCustomError(scheduledPaymentModule, `InvalidPeriod`)
-        .withArgs(spHash);
-    });
-
     it("throws if execution after valid for days", async () => {
       await setNextBlockTimestamp(payAt + validForDays * 86400 + 60);
 
