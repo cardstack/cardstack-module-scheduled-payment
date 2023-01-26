@@ -55,6 +55,7 @@ describe("ScheduledPaymentModule", async () => {
     const Token = await hre.ethers.getContractFactory("TestToken");
     const token = await Token.deploy("TestToken", "TestToken", 18);
     const gasToken = await Token.deploy("GasToken", "GasToken", 18);
+    const usdToken = await Token.deploy("USDToken", "USDToken", 6);
     const Config = await hre.ethers.getContractFactory("TestConfig");
     const config = await Config.deploy(
       user1.address,
@@ -62,7 +63,10 @@ describe("ScheduledPaymentModule", async () => {
       validForDays
     );
     const Exchange = await hre.ethers.getContractFactory("TestExchange");
-    const exchange = await Exchange.deploy("23401000000000000000000");
+    const exchange = await Exchange.deploy(
+      "23401000000000000000000",
+      usdToken.address
+    );
     const avatarFactory = await hre.ethers.getContractFactory("TestAvatar");
     const avatar = await avatarFactory.deploy();
     const ScheduledPaymentModule = await hre.ethers.getContractFactory(
@@ -99,6 +103,7 @@ describe("ScheduledPaymentModule", async () => {
       tx,
       token,
       gasToken,
+      usdToken,
       config,
       exchange,
       payee,
@@ -114,6 +119,7 @@ describe("ScheduledPaymentModule", async () => {
     tx: TX,
     token: TestToken,
     gasToken: TestToken,
+    usdToken: TestToken,
     config: TestConfig,
     exchange: TestExchange;
 
@@ -127,6 +133,7 @@ describe("ScheduledPaymentModule", async () => {
       scheduledPaymentModule,
       token,
       gasToken,
+      usdToken,
       config,
       exchange,
       tx,
@@ -1441,5 +1448,119 @@ describe("ScheduledPaymentModule", async () => {
         }
       });
     }
+  });
+
+  describe("executeScheduledPayment() one-time payment when gas token is usd token", async () => {
+    let spHash: string, executionGas: number, payAt: number;
+    const maxGasPrice = "10000"; //0.01 USD
+
+    beforeEach(async () => {
+      const mintAmount = "10000000000000000000"; //10 eth
+      const usdAmount = "10000000000"; //10000 USD
+      await token.mint(avatar.address, mintAmount);
+      await usdToken.mint(avatar.address, usdAmount);
+
+      payAt = Math.floor(Date.now() / 1000) + 86400; //now + 1 day
+
+      try {
+        await scheduledPaymentModule[
+          "estimateExecutionGas(address,uint256,address,((uint256),(uint256)),uint256,address,string,uint256,uint256)"
+        ](
+          token.address,
+          transferAmount,
+          payee,
+          fee,
+          maxGasPrice,
+          usdToken.address,
+          salt,
+          payAt,
+          maxGasPrice
+        );
+      } catch (e) {
+        const error = getErrorMessageAndStack(e).message.split(" ");
+        executionGas = parseInt(
+          error[error.length - 1].replace(/['GasEstimation(|)']/g, "")
+        );
+      }
+
+      spHash = await scheduledPaymentModule[
+        "createSpHash(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256)"
+      ](
+        token.address,
+        transferAmount,
+        payee,
+        fee,
+        executionGas,
+        maxGasPrice,
+        usdToken.address,
+        salt,
+        payAt
+      );
+      const schedulePayment =
+        await scheduledPaymentModule.populateTransaction.schedulePayment(
+          spHash
+        );
+      avatar.execTransaction(
+        scheduledPaymentModule.address,
+        tx.value,
+        schedulePayment.data || "0x",
+        tx.operation,
+        tx.avatarTxGas,
+        tx.baseGas,
+        tx.gasPrice,
+        usdToken.address,
+        tx.refundReceiver,
+        tx.signatures
+      );
+    });
+
+    it("should transfer fee in USD amount", async () => {
+      await setNextBlockTimestamp(payAt + 60);
+
+      const payeeBalance = await token.balanceOf(user3.address);
+      const feeReceiver = await config.feeReceiver();
+
+      await expect(
+        scheduledPaymentModule
+          .connect(user1)
+          [
+            "executeScheduledPayment(address,uint256,address,((uint256),(uint256)),uint256,uint256,address,string,uint256,uint256)"
+          ](
+            token.address,
+            transferAmount,
+            payee,
+            fee,
+            executionGas,
+            maxGasPrice,
+            usdToken.address,
+            salt,
+            payAt,
+            maxGasPrice
+          )
+      )
+        .to.emit(scheduledPaymentModule, "ScheduledPaymentExecuted")
+        .withArgs(spHash);
+
+      const finalPayeeBalance = await token.balanceOf(user3.address);
+      expect(finalPayeeBalance).to.be.eq(payeeBalance.add(transferAmount));
+
+      const tokenDecimals = BigNumber.from("1000000"); //USD decimals is 6
+      const fixedFee = BigNumber.from(fee.fixedUSD.value)
+        .mul(tokenDecimals)
+        .div(DECIMAL_BASE);
+      const gasReimbursement = BigNumber.from(executionGas).mul(
+        BigNumber.from(maxGasPrice)
+      );
+      const finalFeeReceiverGasBalance = await usdToken.balanceOf(feeReceiver);
+      expect(finalFeeReceiverGasBalance).to.be.eq(
+        gasReimbursement.add(fixedFee)
+      );
+
+      const percentage = BigNumber.from(fee.percentage.value)
+        .mul(BigNumber.from(transferAmount))
+        .div(DECIMAL_BASE);
+      const finalFeeReceiverBalance = await token.balanceOf(feeReceiver);
+      expect(finalFeeReceiverBalance).to.be.eq(percentage);
+    });
   });
 });
