@@ -60,11 +60,10 @@ contract Exchange is IExchange, OwnableUpgradeable {
             usdToken
         );
 
-        Decimal.D256 memory usdRate;
-        usdRate.value =
-            amountOut *
-            (ten**(Decimal.BASE_POW - ERC20(usdToken).decimals()));
-
-        return usdRate;
+        return
+            Decimal.D256(
+                amountOut *
+                    (ten**(Decimal.BASE_POW - ERC20(usdToken).decimals()))
+            );
     }
 }
