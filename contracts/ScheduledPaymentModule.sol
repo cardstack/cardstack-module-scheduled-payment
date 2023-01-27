@@ -573,11 +573,19 @@ contract ScheduledPaymentModule is Module {
         returns (uint256)
     {
         if (fee.fixedUSD.value == 0) return 0;
-        Decimal.D256 memory usdRate = IExchange(exchange).exchangeRateOf(token);
 
-        require(usdRate.value > 0, "exchange rate cannot be 0");
-        uint8 tokenDecimals = ERC20(token).decimals();
+        uint8 tokenDecimals;
         uint256 ten = 10;
+        address usdToken = IExchange(exchange).usdToken();
+        if (usdToken == token) {
+            tokenDecimals = ERC20(usdToken).decimals();
+            return Decimal.mul(ten**tokenDecimals, fee.fixedUSD);
+        }
+
+        Decimal.D256 memory usdRate = IExchange(exchange).exchangeRateOf(token);
+        require(usdRate.value > 0, "exchange rate cannot be 0");
+        tokenDecimals = ERC20(token).decimals();
+
         return
             Decimal.div(Decimal.mul(ten**tokenDecimals, fee.fixedUSD), usdRate);
     }

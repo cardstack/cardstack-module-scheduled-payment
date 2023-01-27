@@ -7,4 +7,6 @@ interface IExchange {
     function exchangeRateOf(address token)
         external
         returns (Decimal.D256 memory);
+
+    function usdToken() external view returns (address);
 }
