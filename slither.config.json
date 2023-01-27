@@ -5,6 +5,6 @@
   "exclude_medium": false,
   "exclude_high": false,
   "disable_color": false,
-  "filter_paths": "(node_modules/|contracts/test/)",
+  "filter_paths": "(node_modules/|contracts/test/|contracts/utils/)",
   "legacy_ast": false
 }
