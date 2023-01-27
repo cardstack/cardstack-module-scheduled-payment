@@ -161,12 +161,13 @@ contract ScheduledPaymentModule is Module {
         );
 
         if (!spHashes.contains(spHash)) revert UnknownHash(spHash);
-        // 1 minute is buffer to protect against miners gaming block time
-        // The recommended time for POW consensus finality is 1 minute
-        if (
-            block.timestamp < payAt.add(1 minutes) ||
-            block.timestamp > payAt.add(IConfig(config).validForSeconds())
-        ) revert InvalidPeriod(spHash);
+
+        // Referring to the block's timestamp is susceptible to manipulation by miners, but
+        // nothing critical will happen if the timestamp is manipulated. The worst case is that the off-chain caller (crank) will
+        // have to pay for the gas of the reverted transaction.
+        if (block.timestamp > payAt.add(IConfig(config).validForSeconds()))
+            revert InvalidPeriod(spHash);
+
         if (gasPrice > maxGasPrice) revert ExceedMaxGasPrice(spHash);
         if (
             !_executeOneTimePayment(
