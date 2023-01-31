@@ -2,8 +2,8 @@ import { ConfigFunction } from "@cardstack/upgrade-manager/dist/src/types";
 
 const configValues = {
   goerli: {
-    crankAddress: "CRANK_ADDRESS_HERE",
-    feeReceiver: "FEE_RECEIVER_HERE",
+    crankAddress: "0x0CE00362735A9c00dcF5B345Af78b5aab136ef79",
+    feeReceiver: "0x307E0433369776eF3B381Fd990353a7da8DfD138",
     validForDays: 3,
   },
   mainnet: {
