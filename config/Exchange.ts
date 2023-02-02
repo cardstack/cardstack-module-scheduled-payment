@@ -2,9 +2,9 @@ import { ConfigFunction } from "@cardstack/upgrade-manager/dist/src/types";
 
 const configValues = {
   goerli: {
-    factory: "FACTORY_ADDRESS_HERE",
+    factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
     fee: 3000,
-    usdToken: "USD_TOKEN_HERE",
+    usdToken: "0xB0b4eD7E54641f96C134D27921764711Cb303e96",
     secondsAgo: 86400,
   },
   mainnet: {
