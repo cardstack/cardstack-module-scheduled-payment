@@ -17,7 +17,7 @@ const configValues = {
     factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
     fee: 3000,
     usdToken: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-    secondsAgo: 86400,
+    secondsAgo: 7200,
   },
 };
 
